@@ -1,0 +1,42 @@
+{
+    "name": "ogan/core",
+    "description": "Ogan Framework Core - Framework PHP MVC pédagogique et professionnel",
+    "type": "library",
+    "keywords": [
+        "framework",
+        "mvc",
+        "php",
+        "router",
+        "dependency-injection",
+        "orm",
+        "pedagogique",
+        "educational"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Schmitt Sylvain",
+            "email": "sylvain.schmitt@delnyx.fr"
+        }
+    ],
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ogan\\": "src/"
+        },
+        "files": [
+            "src/Debug/helpers.php",
+            "src/Cache/helpers.php",
+            "src/View/Helper/htmx_helpers.php",
+            "src/Logger/helpers.php"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
