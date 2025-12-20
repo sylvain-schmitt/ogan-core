@@ -430,8 +430,9 @@ abstract class Model
         
         // Remove id if null (for PostgreSQL SERIAL / MySQL AUTO_INCREMENT)
         // The database will auto-generate the id
+        // Note: use array_key_exists because isset() returns FALSE for NULL values!
         $primaryKey = static::$primaryKey;
-        if (isset($data[$primaryKey]) && $data[$primaryKey] === null) {
+        if (array_key_exists($primaryKey, $data) && $data[$primaryKey] === null) {
             unset($data[$primaryKey]);
         }
         
