@@ -428,6 +428,13 @@ abstract class Model
         $data = $this->attributes;
         unset($data['exists']);
         
+        // Remove id if null (for PostgreSQL SERIAL / MySQL AUTO_INCREMENT)
+        // The database will auto-generate the id
+        $primaryKey = static::$primaryKey;
+        if (isset($data[$primaryKey]) && $data[$primaryKey] === null) {
+            unset($data[$primaryKey]);
+        }
+        
         $id = QueryBuilder::table(static::getTableName())->insert($data);
 
         if ($id > 0) {
