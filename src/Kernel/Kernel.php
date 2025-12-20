@@ -66,13 +66,26 @@ class Kernel
     /**
      * @param bool $debug Mode debug (true = dev, false = prod)
      */
-    public function __construct(bool $debug = false)
+    public function __construct(bool $debug = false, ?string $projectDir = null)
     {
         $this->debug = $debug;
         
         // Détermine le répertoire racine du projet
-        // __DIR__ = ogan/Kernel, donc on remonte de 2 niveaux
-        $this->projectDir = dirname(__DIR__, 2);
+        if ($projectDir !== null) {
+            $this->projectDir = $projectDir;
+        } else {
+            // Détection automatique du répertoire projet
+            // Si installé via Composer : vendor/ogan/core/src/Kernel -> remonter 5 niveaux
+            // Si en développement local : ogan/Kernel -> remonter 2 niveaux
+            $vendorPath = dirname(__DIR__, 4); // vendor/ogan/core/src -> vendor
+            if (basename($vendorPath) === 'vendor') {
+                // Installation via Composer
+                $this->projectDir = dirname($vendorPath); // vendor/../ = racine projet
+            } else {
+                // Développement local (ogan/ à la racine)
+                $this->projectDir = dirname(__DIR__, 2);
+            }
+        }
     }
 
     /**
