@@ -20,10 +20,9 @@ class JsAssetGenerator extends AbstractGenerator
         $jsDir = $projectRoot . '/public/assets/js';
         $this->ensureDirectory($jsDir);
 
-        $assets = [
-            'theme.js' => 'getThemeJs',
-            // Note: flashes.js fait partie du framework de base
-        ];
+        // Note: theme.js et flashes.js font maintenant partie du skeleton de base
+        // Ce générateur est conservé pour d'éventuels futurs assets spécifiques à l'auth
+        $assets = [];
 
         foreach ($assets as $filename => $method) {
             $path = $jsDir . '/' . $filename;
