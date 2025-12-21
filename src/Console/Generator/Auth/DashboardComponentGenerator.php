@@ -52,7 +52,7 @@ class DashboardComponentGenerator extends AbstractGenerator
         return <<<HTML
 <div class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-sm transition-transform -translate-x-full md:translate-x-0" id="sidebar">
     <div class="flex items-center justify-center h-16 border-b border-gray-200 dark:border-gray-700 px-6">
-        <span class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">DELNYX</span>
+        <span class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">OGAN</span>
     </div>
     
     <nav class="p-4 space-y-1"{$hxBoost}>
