@@ -45,7 +45,7 @@ class Request implements RequestInterface
         $decoded = json_decode($this->rawInput, true);
         return is_array($decoded) ? $decoded : [];
     }
-    
+
     /**
      * Vérifie si la requête attend une réponse JSON
      */
@@ -73,7 +73,7 @@ class Request implements RequestInterface
             $ips = explode(',', $forwardedFor);
             return trim($ips[0]);
         }
-        
+
         $realIp = $this->getHeader('X-Real-IP');
         if ($realIp) {
             return $realIp;
@@ -83,11 +83,26 @@ class Request implements RequestInterface
     }
 
     /**
-     * Récupère un fichier uploadé
+     * Récupère un fichier uploadé (données brutes)
      */
     public function getFile(string $key): ?array
     {
         return $this->files[$key] ?? null;
+    }
+
+    /**
+     * Récupère un fichier uploadé comme objet UploadedFile
+     * 
+     * @param string $key Nom du champ de fichier
+     * @return UploadedFile|null Instance UploadedFile ou null si non trouvé
+     */
+    public function file(string $key): ?UploadedFile
+    {
+        $fileData = $this->files[$key] ?? null;
+        if ($fileData === null) {
+            return null;
+        }
+        return new UploadedFile($fileData);
     }
 
     /**
@@ -143,18 +158,18 @@ class Request implements RequestInterface
         // Convertir le nom du header au format $_SERVER
         // Ex: "X-Forwarded-For" -> "HTTP_X_FORWARDED_FOR"
         $serverKey = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
-        
+
         // Certains headers ont des clés spéciales sans le préfixe HTTP_
         $specialHeaders = [
             'CONTENT_TYPE' => 'CONTENT_TYPE',
             'CONTENT_LENGTH' => 'CONTENT_LENGTH',
         ];
-        
+
         $normalizedName = strtoupper(str_replace('-', '_', $name));
         if (isset($specialHeaders[$normalizedName])) {
             return $this->server[$specialHeaders[$normalizedName]] ?? null;
         }
-        
+
         return $this->server[$serverKey] ?? null;
     }
 
@@ -167,7 +182,7 @@ class Request implements RequestInterface
     public function getHeaders(): array
     {
         $headers = [];
-        
+
         foreach ($this->server as $key => $value) {
             // Les headers HTTP commencent par HTTP_
             if (str_starts_with($key, 'HTTP_')) {
@@ -179,7 +194,7 @@ class Request implements RequestInterface
                 $headers[$headerName] = $value;
             }
         }
-        
+
         // Ajouter les headers spéciaux
         if (isset($this->server['CONTENT_TYPE'])) {
             $headers['Content-Type'] = $this->server['CONTENT_TYPE'];
@@ -187,7 +202,7 @@ class Request implements RequestInterface
         if (isset($this->server['CONTENT_LENGTH'])) {
             $headers['Content-Length'] = $this->server['CONTENT_LENGTH'];
         }
-        
+
         return $headers;
     }
 

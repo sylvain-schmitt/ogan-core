@@ -69,7 +69,7 @@ class Kernel
     public function __construct(bool $debug = false, ?string $projectDir = null)
     {
         $this->debug = $debug;
-        
+
         // Détermine le répertoire racine du projet
         if ($projectDir !== null) {
             $this->projectDir = $projectDir;
@@ -150,7 +150,7 @@ class Kernel
             $sessionConfig = \Ogan\Config\Config::get('session', []);
             return new Session($sessionConfig);
         });
-        
+
         // Alias Session::class -> SessionInterface
         $this->container->set(Session::class, function (Container $c) {
             return $c->get(SessionInterface::class);
@@ -184,6 +184,11 @@ class Kernel
         });
 
         // ─────────────────────────────────────────────────────────────
+        // Service : ImageOptimizer (Optimisation d'images)
+        // ─────────────────────────────────────────────────────────────
+        $this->container->set(\Ogan\Image\ImageOptimizer::class, fn() => new \Ogan\Image\ImageOptimizer());
+
+        // ─────────────────────────────────────────────────────────────
         // Service : Request (Requête HTTP)
         // ─────────────────────────────────────────────────────────────
         $this->container->set(Request::class, function (Container $c) {
@@ -195,10 +200,10 @@ class Kernel
                 $_FILES,
                 file_get_contents('php://input')
             );
-            
+
             // On injecte le service session
             $request->setSession($c->get(SessionInterface::class));
-            
+
             return $request;
         });
 
@@ -212,15 +217,15 @@ class Kernel
         // ─────────────────────────────────────────────────────────────
         $this->container->set(Router::class, function (Container $c) {
             $router = new Router();
-            
+
             // Charge les routes depuis les contrôleurs
             $controllersPath = $this->projectDir . '/src/Controller';
             $router->loadRoutesFromControllers($controllersPath);
-            
+
             // Configure les middlewares depuis YAML (avec fallback sur PHP)
             $middlewaresConfigPath = $this->projectDir . '/config/middlewares.yaml';
             \Ogan\Config\MiddlewareLoader::loadFromYaml($middlewaresConfigPath, $router);
-            
+
             return $router;
         });
     }
