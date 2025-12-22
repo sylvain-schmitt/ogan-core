@@ -26,12 +26,48 @@ readonly class OptimizedImage
         public string $format
     ) {}
 
+    // ═══════════════════════════════════════════════════════════════════
+    // GETTERS (pour compatibilité avec les moteurs de template)
+    // ═══════════════════════════════════════════════════════════════════
+
+    public function getPath(): string
+    {
+        return $this->path;
+    }
+    public function getFilename(): string
+    {
+        return $this->filename;
+    }
+    public function getWidth(): int
+    {
+        return $this->width;
+    }
+    public function getHeight(): int
+    {
+        return $this->height;
+    }
+    public function getSize(): int
+    {
+        return $this->size;
+    }
+    public function getFormat(): string
+    {
+        return $this->format;
+    }
+
     /**
      * Retourne le chemin relatif pour le web (sans "public/")
+     * Gère les chemins absolus et relatifs
      */
     public function getWebPath(): string
     {
-        return str_replace('public/', '', $this->path);
+        // Si le chemin contient 'public/', on extrait ce qui suit
+        if (str_contains($this->path, 'public/')) {
+            $parts = explode('public/', $this->path, 2);
+            return $parts[1] ?? $this->path;
+        }
+
+        return $this->path;
     }
 
     /**
