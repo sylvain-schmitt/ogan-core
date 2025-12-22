@@ -81,7 +81,7 @@ class DashboardTemplateGenerator extends AbstractGenerator
     </div>
 
     <!-- Scripts: HTMX + OganStimulus -->
-    <script src="{{ asset('/assets/js/htmx.min.js') }}"></script>
+    {{ htmx_script() }}
     <script type="module" src="{{ asset('/assets/js/app.js') }}"></script>
 </body>
 </html>
