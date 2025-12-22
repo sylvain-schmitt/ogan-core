@@ -290,6 +290,21 @@ interface RequestInterface
      * @return \Ogan\Session\SessionInterface|null L'objet session ou null
      */
     public function getSession(): ?\Ogan\Session\SessionInterface;
+
+    /**
+     * Vérifie si c'est une requête AJAX (XMLHttpRequest)
+     */
+    public function isAjax(): bool;
+
+    /**
+     * Vérifie si c'est une requête HTMX
+     */
+    public function isHtmx(): bool;
+
+    /**
+     * Vérifie si c'est une requête HTMX boostée
+     */
+    public function isBoosted(): bool;
 }
 
 /**

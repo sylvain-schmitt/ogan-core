@@ -229,4 +229,14 @@ class Request implements RequestInterface
     {
         return $this->session !== null;
     }
+
+    public function isHtmx(): bool
+    {
+        return $this->getHeader('HX-Request') === 'true';
+    }
+
+    public function isBoosted(): bool
+    {
+        return $this->getHeader('HX-Boosted') === 'true';
+    }
 }
