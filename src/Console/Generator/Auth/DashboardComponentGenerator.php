@@ -50,9 +50,22 @@ class DashboardComponentGenerator extends AbstractGenerator
         $hxBoost = $this->htmx ? ' hx-boost="true"' : '';
 
         return <<<HTML
+<!-- Overlay pour fermer la sidebar au click à l'extérieur (mobile) -->
+<div id="sidebar-overlay" 
+     data-controller="sidebar" 
+     data-action="click->sidebar#close"
+     class="fixed inset-0 z-40 bg-gray-900/50 hidden md:hidden"></div>
+
 <div class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-sm transition-transform -translate-x-full md:translate-x-0" id="sidebar">
-    <div class="flex items-center justify-center h-16 border-b border-gray-200 dark:border-gray-700 px-6">
+    <div class="flex items-center justify-between h-16 border-b border-gray-200 dark:border-gray-700 px-6">
         <span class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">OGAN</span>
+        <!-- Bouton fermeture (mobile) -->
+        <button type="button" 
+                data-controller="sidebar" 
+                data-action="click->sidebar#close"
+                class="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
     </div>
     
     <nav class="p-4 space-y-1"{$hxBoost}>

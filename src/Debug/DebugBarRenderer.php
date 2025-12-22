@@ -24,10 +24,10 @@ class DebugBarRenderer
         $html .= self::getBar($data);
         $html .= self::getPanels($data);
         $html .= self::getScript();
-        
+
         return $html;
     }
-    
+
     /**
      * Génère la barre principale
      */
@@ -35,32 +35,32 @@ class DebugBarRenderer
     {
         $time = $data['time']['execution_ms'] ?? 0;
         $timeClass = $time > 200 ? 'odb-slow' : ($time > 100 ? 'odb-medium' : 'odb-fast');
-        
+
         $memory = $data['memory']['peak'] ?? 'N/A';
         $memoryBytes = $data['memory']['peak_bytes'] ?? 0;
         $memoryClass = $memoryBytes > 50 * 1024 * 1024 ? 'odb-slow' : ($memoryBytes > 20 * 1024 * 1024 ? 'odb-medium' : 'odb-fast');
-        
+
         $queryCount = $data['queries']['count'] ?? 0;
         $queryTime = $data['queries']['total_time_ms'] ?? 0;
         $queryClass = $queryCount > 20 ? 'odb-slow' : ($queryCount > 10 ? 'odb-medium' : 'odb-fast');
-        
+
         $statusCode = $data['response']['status_code'] ?? 200;
         $statusClass = $statusCode >= 400 ? 'odb-slow' : ($statusCode >= 300 ? 'odb-medium' : 'odb-fast');
-        
+
         $method = $data['request']['method'] ?? 'GET';
         $uri = $data['request']['uri'] ?? '/';
-        
+
         // User info
         $user = $data['user'];
         $userIcon = $user ? '👤' : '👻';
         $userName = $user ? ($user['name'] ?? $user['email'] ?? 'User #' . ($user['id'] ?? '?')) : 'Guest';
-        
+
         // Route info
         $route = $data['route'];
         $routeName = $route['name'] ?? 'N/A';
-        
+
         return <<<HTML
-<div id="ogan-debug-bar" class="odb-bar">
+<div id="ogan-debug-bar" class="odb-bar" hx-swap-oob="true">
     <div class="odb-logo" onclick="oganDebugToggle()">🐕 Ogan</div>
     
     <div class="odb-item {$statusClass}" data-panel="request">
@@ -108,43 +108,43 @@ class DebugBarRenderer
 </div>
 HTML;
     }
-    
+
     /**
      * Génère les panneaux détaillés
      */
     private static function getPanels(array $data): string
     {
-        $html = '<div id="ogan-debug-panels" class="odb-panels">';
-        
+        $html = '<div id="ogan-debug-panels" class="odb-panels" hx-swap-oob="true">';
+
         // Panel Request
         $html .= self::renderRequestPanel($data);
-        
+
         // Panel Time
         $html .= self::renderTimePanel($data);
-        
+
         // Panel Memory
         $html .= self::renderMemoryPanel($data);
-        
+
         // Panel Queries
         $html .= self::renderQueriesPanel($data);
-        
+
         // Panel Route
         $html .= self::renderRoutePanel($data);
-        
+
         // Panel User
         $html .= self::renderUserPanel($data);
-        
+
         // Panel Session
         $html .= self::renderSessionPanel($data);
-        
+
         // Panel Config
         $html .= self::renderConfigPanel($data);
-        
+
         $html .= '</div>';
-        
+
         return $html;
     }
-    
+
     private static function renderRequestPanel(array $data): string
     {
         $req = $data['request'];
@@ -153,10 +153,10 @@ HTML;
         $ip = htmlspecialchars($req['ip']);
         $ua = htmlspecialchars(substr($req['user_agent'], 0, 100));
         $status = $data['response']['status_code'];
-        
+
         $get = !empty($req['get']) ? self::renderKeyValue($req['get']) : '<em>Aucune donnée GET</em>';
         $post = !empty($req['post']) ? self::renderKeyValue($req['post']) : '<em>Aucune donnée POST</em>';
-        
+
         return <<<HTML
 <div class="odb-panel" id="odb-panel-request">
     <h3>🌍 Request / Response</h3>
@@ -174,12 +174,12 @@ HTML;
 </div>
 HTML;
     }
-    
+
     private static function renderTimePanel(array $data): string
     {
         $time = $data['time']['execution_ms'];
         $formatted = $data['time']['execution_formatted'];
-        
+
         return <<<HTML
 <div class="odb-panel" id="odb-panel-time">
     <h3>⏱️ Performance</h3>
@@ -188,12 +188,12 @@ HTML;
 </div>
 HTML;
     }
-    
+
     private static function renderMemoryPanel(array $data): string
     {
         $current = $data['memory']['current'];
         $peak = $data['memory']['peak'];
-        
+
         return <<<HTML
 <div class="odb-panel" id="odb-panel-memory">
     <h3>💾 Mémoire</h3>
@@ -204,19 +204,19 @@ HTML;
 </div>
 HTML;
     }
-    
+
     private static function renderQueriesPanel(array $data): string
     {
         $count = $data['queries']['count'];
         $totalTime = $data['queries']['total_time_ms'];
-        
+
         $queriesHtml = '';
         foreach ($data['queries']['list'] as $i => $q) {
             $sql = htmlspecialchars($q['sql']);
             $time = round($q['time'] * 1000, 2);
             $trace = htmlspecialchars($q['backtrace'] ?? '');
             $timeClass = $time > 50 ? 'odb-slow' : ($time > 10 ? 'odb-medium' : 'odb-fast');
-            
+
             $queriesHtml .= <<<HTML
 <div class="odb-query">
     <div class="odb-query-header">
@@ -228,11 +228,11 @@ HTML;
 </div>
 HTML;
         }
-        
+
         if (empty($queriesHtml)) {
             $queriesHtml = '<p><em>Aucune requête SQL exécutée</em></p>';
         }
-        
+
         return <<<HTML
 <div class="odb-panel" id="odb-panel-queries">
     <h3>🗄️ Requêtes SQL ({$count})</h3>
@@ -241,11 +241,11 @@ HTML;
 </div>
 HTML;
     }
-    
+
     private static function renderRoutePanel(array $data): string
     {
         $route = $data['route'];
-        
+
         if (!$route) {
             return <<<HTML
 <div class="odb-panel" id="odb-panel-route">
@@ -254,13 +254,13 @@ HTML;
 </div>
 HTML;
         }
-        
+
         $name = htmlspecialchars($route['name'] ?? 'N/A');
         $controller = htmlspecialchars($route['controller'] ?? 'N/A');
         $action = htmlspecialchars($route['action'] ?? 'N/A');
         $path = htmlspecialchars($route['path'] ?? 'N/A');
         $params = !empty($route['params']) ? self::renderKeyValue($route['params']) : '<em>Aucun paramètre</em>';
-        
+
         return <<<HTML
 <div class="odb-panel" id="odb-panel-route">
     <h3>🛣️ Route</h3>
@@ -275,11 +275,11 @@ HTML;
 </div>
 HTML;
     }
-    
+
     private static function renderUserPanel(array $data): string
     {
         $user = $data['user'];
-        
+
         if (!$user) {
             return <<<HTML
 <div class="odb-panel" id="odb-panel-user">
@@ -288,9 +288,9 @@ HTML;
 </div>
 HTML;
         }
-        
+
         $content = self::renderKeyValue($user);
-        
+
         return <<<HTML
 <div class="odb-panel" id="odb-panel-user">
     <h3>👤 Utilisateur</h3>
@@ -299,11 +299,11 @@ HTML;
 </div>
 HTML;
     }
-    
+
     private static function renderSessionPanel(array $data): string
     {
         $session = $data['session'];
-        
+
         if ($session['status'] === 'inactive') {
             return <<<HTML
 <div class="odb-panel" id="odb-panel-session">
@@ -312,10 +312,10 @@ HTML;
 </div>
 HTML;
         }
-        
+
         $id = htmlspecialchars($session['id'] ?? '');
         $content = !empty($session['data']) ? self::renderKeyValue($session['data']) : '<em>Session vide</em>';
-        
+
         return <<<HTML
 <div class="odb-panel" id="odb-panel-session">
     <h3>📝 Session</h3>
@@ -324,12 +324,12 @@ HTML;
 </div>
 HTML;
     }
-    
+
     private static function renderConfigPanel(array $data): string
     {
         $config = $data['config'];
         $includes = $data['includes']['count'];
-        
+
         return <<<HTML
 <div class="odb-panel" id="odb-panel-config">
     <h3>⚙️ Configuration</h3>
@@ -343,7 +343,7 @@ HTML;
 </div>
 HTML;
     }
-    
+
     /**
      * Rend un tableau clé/valeur
      */
@@ -366,7 +366,7 @@ HTML;
         $html .= '</table>';
         return $html;
     }
-    
+
     /**
      * Styles CSS
      */
@@ -493,7 +493,7 @@ HTML;
 </style>
 CSS;
     }
-    
+
     /**
      * JavaScript
      */

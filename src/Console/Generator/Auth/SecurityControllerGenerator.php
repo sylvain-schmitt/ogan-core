@@ -110,6 +110,7 @@ class SecurityController extends AbstractController
                             $this->rememberMe->createToken($user->id);
                         }
                         
+                        $this->addFlash('success', 'Connexion réussie. Bienvenue !');
                         return $this->redirect(Config::get('auth.login_redirect', '/dashboard'));
                     }
                 } else {
@@ -139,6 +140,7 @@ class SecurityController extends AbstractController
         $this->rememberMe->clearCookie();
         
         $this->authenticator->logout($this->session);
+        $this->addFlash('success', 'Vous avez été déconnecté avec succès.');
         return $this->redirect(Config::get('auth.logout_redirect', '/login'));
     }
 
