@@ -43,7 +43,7 @@ class DashboardTemplateGenerator extends AbstractGenerator
 
     private function getLayoutTemplate(): string
     {
-        $htmxScript = $this->htmx ? "\n    {{ htmx_script() }}" : '';
+        // HTMX boost attributes for SPA-like navigation
         $hxBoostAttr = $this->htmx ? ' hx-boost="true" hx-target="#page-content" hx-swap="innerHTML" hx-select="#page-content"' : '';
 
         return <<<HTML
@@ -55,8 +55,6 @@ class DashboardTemplateGenerator extends AbstractGenerator
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Ogan</title>
     <link rel="stylesheet" href="{{ asset('/assets/css/app.css') }}">
-    <!-- Theme Script (in head to avoid FOUC) -->
-    <script src="{{ asset('/assets/js/theme.js') }}"></script>
 </head>
 <body class="h-full dark:bg-gray-900 transition-colors duration-200"{$hxBoostAttr}>
 
@@ -80,7 +78,11 @@ class DashboardTemplateGenerator extends AbstractGenerator
                 </main>
             </div>
         </div>
-    </div>{$htmxScript}
+    </div>
+
+    <!-- Scripts: HTMX + OganStimulus -->
+    <script src="{{ asset('/assets/js/htmx.min.js') }}"></script>
+    <script type="module" src="{{ asset('/assets/js/app.js') }}"></script>
 </body>
 </html>
 HTML;
