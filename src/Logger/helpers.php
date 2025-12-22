@@ -43,31 +43,31 @@ if (!function_exists('logger')) {
     function logger(?string $channel = null): Logger
     {
         global $_logger_instance;
-        
+
         if ($_logger_instance === null) {
             // Déterminer le chemin des logs
-            $logPath = defined('LOG_PATH') 
-                ? LOG_PATH 
-                : dirname(__DIR__, 2) . '/var/log';
-            
+            $logPath = defined('PROJECT_ROOT')
+                ? PROJECT_ROOT . '/var/log'
+                : (defined('LOG_PATH') ? LOG_PATH : dirname(__DIR__, 2) . '/var/log');
+
             // Créer le répertoire si nécessaire
             if (!is_dir($logPath)) {
                 mkdir($logPath, 0755, true);
             }
-            
+
             // Niveau de log selon l'environnement
             $minLevel = ($_ENV['APP_ENV'] ?? 'dev') === 'prod' ? 'info' : 'debug';
-            
+
             // Format JSON en production
             $jsonFormat = ($_ENV['APP_ENV'] ?? 'dev') === 'prod';
-            
+
             $_logger_instance = new Logger($logPath, $minLevel, 'app', $jsonFormat);
         }
-        
+
         if ($channel !== null) {
             return $_logger_instance->channel($channel);
         }
-        
+
         return $_logger_instance;
     }
 }
@@ -89,13 +89,13 @@ if (!function_exists('log_exception')) {
             'line' => $exception->getLine(),
             'trace' => $exception->getTraceAsString(),
         ];
-        
+
         // Ajouter les infos de requête si disponibles
         if (isset($_SERVER['REQUEST_URI'])) {
             $context['url'] = $_SERVER['REQUEST_URI'];
             $context['method'] = $_SERVER['REQUEST_METHOD'] ?? 'CLI';
         }
-        
+
         logger($channel)->error($exception->getMessage(), $context);
     }
 }

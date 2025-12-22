@@ -57,8 +57,14 @@ class LoggerMiddleware implements MiddlewareInterface
     public function __construct(?string $logFile = null)
     {
         // Utilise le chemin fourni ou un chemin par défaut
-        $this->logFile = $logFile ?? __DIR__ . '/../../../var/log/requests.log';
-        
+        if ($logFile) {
+            $this->logFile = $logFile;
+        } elseif (defined('PROJECT_ROOT')) {
+            $this->logFile = PROJECT_ROOT . '/var/log/requests.log';
+        } else {
+            $this->logFile = __DIR__ . '/../../../var/log/requests.log';
+        }
+
         // Crée le dossier de logs s'il n'existe pas
         $logDir = dirname($this->logFile);
         if (!is_dir($logDir)) {
