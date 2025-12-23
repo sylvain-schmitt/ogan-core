@@ -99,15 +99,28 @@ class ViewHelper
 
     /**
      * Échappe une chaîne pour l'affichage (XSS Protection)
+     * 
+     * Note: Les objets FormView et FieldView retournent du HTML "safe" et ne sont pas échappés.
      */
     public function escape(mixed $value): string
     {
         if ($value === null) {
             return '';
         }
-        
+
         if ($value instanceof \DateTimeInterface) {
             return htmlspecialchars($value->format('d/m/Y H:i'), ENT_QUOTES, 'UTF-8');
+        }
+
+        // Les objets de formulaire retournent du HTML sûr, ne pas échapper
+        if ($value instanceof \Ogan\Form\FormView || $value instanceof \Ogan\Form\FieldView) {
+            return (string) $value;
+        }
+
+        // Les objets qui implémentent __toString et ont une méthode render()
+        // sont considérés comme retournant du HTML sûr (ex: composants custom)
+        if (is_object($value) && method_exists($value, 'render') && method_exists($value, '__toString')) {
+            return (string) $value;
         }
 
         return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
