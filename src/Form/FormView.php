@@ -141,6 +141,15 @@ class FormView
  * ═══════════════════════════════════════════════════════════════════════
  * 👁️ FIELDVIEW - Vue d'un Champ de Formulaire
  * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * Permet de rendre un champ de formulaire de manière granulaire :
+ * - {{ form.email }}        → Champ complet (label + widget + erreurs)
+ * - {{ form.email.label }}  → Juste le label
+ * - {{ form.email.widget }} → Juste l'input
+ * - {{ form.email.errors }} → Juste les erreurs
+ * - {{ form.email.row }}    → Alias de render() (champ complet)
+ * 
+ * ═══════════════════════════════════════════════════════════════════════
  */
 class FieldView
 {
@@ -154,7 +163,21 @@ class FieldView
     }
 
     /**
-     * Rendre le champ
+     * Accès magique aux sous-éléments (label, widget, errors, row)
+     */
+    public function __get(string $property): string
+    {
+        return match ($property) {
+            'label' => $this->label(),
+            'widget' => $this->widget(),
+            'errors' => $this->errors(),
+            'row' => $this->render(),
+            default => '',
+        };
+    }
+
+    /**
+     * Rendre le champ complet (label + widget + erreurs)
      */
     public function render(): string
     {
@@ -172,17 +195,80 @@ class FieldView
         $errors = $this->formBuilder->getErrors();
         $fieldErrors = $errors[$this->name] ?? [];
 
-        // Instancier le type et rendre le champ
+        // Instancier le type et rendre le champ complet
         $typeInstance = new $type();
         return $typeInstance->render($this->name, $value, $options, $fieldErrors);
     }
 
     /**
-     * Magic method pour le rendu
+     * Rendre uniquement le label
+     */
+    public function label(): string
+    {
+        $fields = $this->formBuilder->getFields();
+        $field = $fields[$this->name] ?? null;
+
+        if (!$field) {
+            return '';
+        }
+
+        $typeInstance = new $field['type']();
+        return $typeInstance->renderLabel($this->name, $field['options']);
+    }
+
+    /**
+     * Rendre uniquement le widget (input)
+     */
+    public function widget(): string
+    {
+        $fields = $this->formBuilder->getFields();
+        $field = $fields[$this->name] ?? null;
+
+        if (!$field) {
+            return '';
+        }
+
+        $data = $this->formBuilder->getData();
+        $value = $data[$this->name] ?? $field['options']['data'] ?? '';
+
+        $typeInstance = new $field['type']();
+        return $typeInstance->renderWidget($this->name, $value, $field['options']);
+    }
+
+    /**
+     * Rendre uniquement les erreurs
+     */
+    public function errors(): string
+    {
+        $errors = $this->formBuilder->getErrors();
+        $fieldErrors = $errors[$this->name] ?? [];
+
+        if (empty($fieldErrors)) {
+            return '';
+        }
+
+        $fields = $this->formBuilder->getFields();
+        $field = $fields[$this->name] ?? null;
+
+        if (!$field) {
+            // Fallback si pas de type trouvé
+            $html = '<div class="mt-1">';
+            foreach ($fieldErrors as $error) {
+                $html .= '<p class="text-sm text-red-600">' . htmlspecialchars($error) . '</p>';
+            }
+            $html .= '</div>';
+            return $html;
+        }
+
+        $typeInstance = new $field['type']();
+        return $typeInstance->renderErrors($fieldErrors);
+    }
+
+    /**
+     * Magic method pour le rendu ({{ form.fieldName }})
      */
     public function __toString(): string
     {
         return $this->render();
     }
 }
-

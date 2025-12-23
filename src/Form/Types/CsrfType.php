@@ -17,6 +17,8 @@ use Ogan\Security\CsrfTokenManager;
 
 class CsrfType implements FieldTypeInterface
 {
+    use FieldTypeTrait;
+
     private CsrfTokenManager $csrfManager;
 
     public function __construct()

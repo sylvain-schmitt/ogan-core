@@ -31,6 +31,8 @@ namespace Ogan\Form\Types;
 
 class FileType implements FieldTypeInterface
 {
+    use FieldTypeTrait;
+
     public function render(string $name, mixed $value, array $options, array $errors): string
     {
         $label = $options['label'] ?? ucfirst($name);

@@ -30,5 +30,22 @@ interface FieldTypeInterface
      * @return string HTML du widget
      */
     public function renderWidget(string $name, mixed $value, array $options): string;
+
+    /**
+     * Rendre uniquement le label
+     * 
+     * @param string $name Nom du champ
+     * @param array $options Options du champ
+     * @return string HTML du label
+     */
+    public function renderLabel(string $name, array $options): string;
+
+    /**
+     * Rendre uniquement les erreurs
+     * 
+     * @param array $errors Erreurs de validation
+     * @return string HTML des erreurs
+     */
+    public function renderErrors(array $errors): string;
 }
 

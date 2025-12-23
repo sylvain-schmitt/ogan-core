@@ -4,6 +4,8 @@ namespace Ogan\Form\Types;
 
 class SubmitType implements FieldTypeInterface
 {
+    use FieldTypeTrait;
+
     public function render(string $name, mixed $value, array $options, array $errors): string
     {
         $label = $options['label'] ?? 'Envoyer';
