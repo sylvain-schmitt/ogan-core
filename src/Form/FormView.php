@@ -15,6 +15,8 @@
 
 namespace Ogan\Form;
 
+use Ogan\View\SafeHtml;
+
 class FormView
 {
     /**
@@ -165,15 +167,18 @@ class FieldView
     /**
      * Accès magique aux sous-éléments (label, widget, errors, row)
      */
-    public function __get(string $property): string
+    public function __get(string $property): SafeHtml|string
     {
-        return match ($property) {
+        $html = match ($property) {
             'label' => $this->label(),
             'widget' => $this->widget(),
             'errors' => $this->errors(),
             'row' => $this->render(),
             default => '',
         };
+
+        // Wrapper dans SafeHtml pour éviter l'échappement
+        return $html !== '' ? new SafeHtml($html) : '';
     }
 
     /**

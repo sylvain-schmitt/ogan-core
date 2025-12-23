@@ -100,12 +100,17 @@ class ViewHelper
     /**
      * Échappe une chaîne pour l'affichage (XSS Protection)
      * 
-     * Note: Les objets FormView et FieldView retournent du HTML "safe" et ne sont pas échappés.
+     * Note: Les objets SafeHtml, FormView et FieldView retournent du HTML "safe" et ne sont pas échappés.
      */
     public function escape(mixed $value): string
     {
         if ($value === null) {
             return '';
+        }
+
+        // SafeHtml est un wrapper explicite pour HTML sûr
+        if ($value instanceof \Ogan\View\SafeHtml) {
+            return (string) $value;
         }
 
         if ($value instanceof \DateTimeInterface) {
