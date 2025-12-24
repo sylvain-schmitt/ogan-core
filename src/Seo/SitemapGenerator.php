@@ -154,13 +154,14 @@ class SitemapGenerator
 
         foreach ($routes as $route) {
             // Seulement les routes GET
-            $methods = $route['methods'] ?? ['GET'];
+            // Route est un objet avec les propriétés: httpMethods, path, name, controllerClass, controllerMethod
+            $methods = $route->httpMethods ?? ['GET'];
             if (!in_array('GET', $methods)) {
                 continue;
             }
 
-            $path = $route['path'] ?? '';
-            $name = $route['name'] ?? '';
+            $path = $route->path ?? '';
+            $name = $route->name ?? '';
 
             // Ignorer les routes avec paramètres dynamiques (ex: /user/{id})
             if (preg_match('/\{[^}]+\}/', $path)) {
