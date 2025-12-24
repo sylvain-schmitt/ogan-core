@@ -212,20 +212,40 @@ class Config
      * -----------------------
      * Les variables d'env utilisent des underscores :
      * - APP_ENV → app.env
-     * - DB_HOST → database.host
+     * - DATABASE_URL → Parsed into database.* (Symfony-style)
      * 
      * ═══════════════════════════════════════════════════════════════════
      */
     private static function mergeEnvIntoConfig(): void
     {
-        // Convertir les variables d'env en structure de config
+        // ─────────────────────────────────────────────────────────────
+        // DATABASE_URL PARSING (Symfony-style)
+        // ─────────────────────────────────────────────────────────────
+        // Format: mysql://user:password@host:port/database?charset=utf8mb4
+        //         postgresql://user:password@host:port/database
+        //         sqlite:///path/to/database.db
+        if (isset($_ENV['DATABASE_URL'])) {
+            $dbConfig = self::parseDatabaseUrl($_ENV['DATABASE_URL']);
+            foreach ($dbConfig as $key => $value) {
+                self::setNested('database.' . $key, $value);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // Autres variables d'environnement
+        // ─────────────────────────────────────────────────────────────
         foreach ($_ENV as $key => $value) {
+            // Skip DATABASE_URL (already processed above)
+            if ($key === 'DATABASE_URL') {
+                continue;
+            }
+
             // Convertir APP_ENV → app.env
             $configKey = strtolower(str_replace('_', '.', $key));
 
             // Convertir en structure imbriquée
-            // DB_HOST → database.host
-            if (str_starts_with($configKey, 'db.')) {
+            // DB_HOST → database.host (legacy support - si DATABASE_URL non défini)
+            if (str_starts_with($configKey, 'db.') && !isset($_ENV['DATABASE_URL'])) {
                 $configKey = 'database.' . substr($configKey, 3);
             }
             
@@ -242,6 +262,95 @@ class Config
             // Définir la valeur (les variables d'env ont la priorité)
             self::setNested($configKey, $value);
         }
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════
+     * PARSER UNE DATABASE_URL (FORMAT SYMFONY)
+     * ═══════════════════════════════════════════════════════════════════
+     * 
+     * Supporte les formats :
+     * - mysql://user:password@host:port/database?charset=utf8mb4
+     * - postgresql://user:password@host:port/database  
+     * - pgsql://user:password@host:port/database
+     * - sqlite:///path/to/database.db
+     * - sqlite:///%kernel.project_dir%/var/app.db
+     * 
+     * @param string $url DATABASE_URL
+     * @return array Configuration parsée
+     * 
+     * ═══════════════════════════════════════════════════════════════════
+     */
+    private static function parseDatabaseUrl(string $url): array
+    {
+        // SQLite special handling
+        if (str_starts_with($url, 'sqlite:')) {
+            // Format: sqlite:///path/to/db.sqlite ou sqlite:///var/app.db
+            $path = preg_replace('#^sqlite:///+#', '', $url);
+            
+            // Remplacer %kernel.project_dir% par PROJECT_ROOT
+            if (defined('PROJECT_ROOT')) {
+                $path = str_replace('%kernel.project_dir%', PROJECT_ROOT, $path);
+            }
+            
+            return [
+                'driver' => 'sqlite',
+                'name' => $path,
+            ];
+        }
+
+        // Parse URL standard
+        $parsed = parse_url($url);
+        
+        if ($parsed === false) {
+            throw new \InvalidArgumentException("DATABASE_URL invalide: {$url}");
+        }
+
+        // Map scheme to driver
+        $driverMap = [
+            'mysql' => 'mysql',
+            'mariadb' => 'mysql',
+            'postgresql' => 'pgsql',
+            'pgsql' => 'pgsql',
+            'postgres' => 'pgsql',
+            'sqlsrv' => 'sqlsrv',
+            'mssql' => 'sqlsrv',
+        ];
+
+        $scheme = $parsed['scheme'] ?? '';
+        $driver = $driverMap[$scheme] ?? $scheme;
+
+        // Extract database name from path
+        $dbname = ltrim($parsed['path'] ?? '', '/');
+
+        // Parse query string for options like charset
+        $options = [];
+        if (isset($parsed['query'])) {
+            parse_str($parsed['query'], $options);
+        }
+
+        $config = [
+            'driver' => $driver,
+            'host' => $parsed['host'] ?? 'localhost',
+            'port' => $parsed['port'] ?? null,
+            'name' => $dbname,
+            'user' => isset($parsed['user']) ? urldecode($parsed['user']) : 'root',
+            'password' => isset($parsed['pass']) ? urldecode($parsed['pass']) : '',
+        ];
+
+        // Add charset if specified
+        if (isset($options['charset'])) {
+            $config['charset'] = $options['charset'];
+        } elseif ($driver === 'mysql') {
+            $config['charset'] = 'utf8mb4'; // Default for MySQL
+        }
+
+        // Add serverVersion if specified (useful for Doctrine compatibility)
+        if (isset($options['serverVersion'])) {
+            $config['serverVersion'] = $options['serverVersion'];
+        }
+
+        return $config;
     }
 
     /**
