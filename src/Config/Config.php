@@ -286,11 +286,12 @@ class Config
      */
     private static function applyEnvironmentDefaults(): void
     {
-        $env = self::get('app.env', 'dev');
+        // Accès direct pour éviter l'erreur "non initialisé"
+        $env = self::$config['app']['env'] ?? 'dev';
 
         // Valider APP_SECRET en production
         if ($env === 'prod') {
-            $secret = self::get('app.secret');
+            $secret = self::$config['app']['secret'] ?? null;
             if (empty($secret) || $secret === 'changeme-in-production') {
                 throw new \RuntimeException(
                     'APP_SECRET doit être défini en production. ' .
