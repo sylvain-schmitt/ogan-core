@@ -66,8 +66,8 @@ class EmailVerificationService
     private function getView(): View
     {
         if ($this->view === null) {
-            $templatesPath = Config::get('view.templates_path', dirname(__DIR__, 2) . '/templates');
-            $cacheDir = Config::get('cache.path', dirname(__DIR__, 2) . '/var/cache') . '/templates';
+            $templatesPath = Config::get('view.templates_path', dirname(__DIR__, 3) . '/templates');
+            $cacheDir = Config::get('cache.path', dirname(__DIR__, 3) . '/var/cache') . '/templates';
             // Activer le compilateur pour les templates .ogan
             $this->view = new View($templatesPath, true, $cacheDir);
         }
