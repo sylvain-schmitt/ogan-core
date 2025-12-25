@@ -67,6 +67,11 @@ class Config
     private static bool $initialized = false;
 
     /**
+     * @var string Chemin racine du projet
+     */
+    private static string $projectRoot = '';
+
+    /**
      * ═══════════════════════════════════════════════════════════════════
      * INITIALISER LA CONFIGURATION
      * ═══════════════════════════════════════════════════════════════════
@@ -96,6 +101,7 @@ class Config
         }
 
         $projectRoot = dirname($envPath);
+        self::$projectRoot = $projectRoot;
 
         // Charger .env d'abord (valeurs de base)
         if (file_exists($envPath)) {
@@ -335,13 +341,14 @@ class Config
             ],
         };
 
-        // Défauts communs à tous les environnements
+        // Défauts communs à tous les environnements (chemins absolus)
         $commonDefaults = [
             'session.path' => '/',
             'session.domain' => '',
-            'log.path' => 'var/log',
-            'cache.path' => 'var/cache',
+            'log.path' => self::$projectRoot . '/var/log',
+            'cache.path' => self::$projectRoot . '/var/cache',
             'router.base.path' => '',
+            'view.templates_path' => self::$projectRoot . '/templates',
         ];
 
         // Fusionner défauts communs
