@@ -112,7 +112,7 @@ class Config
         // ÉTAPE 2 : Charger le fichier de configuration (YAML ou PHP)
         // ─────────────────────────────────────────────────────────────
         $configLoaded = false;
-        
+
         // Essayer YAML en priorité (.yaml ou .yml)
         $yamlPath = preg_replace('/\.php$/', '.yaml', $configPath);
         if (file_exists($yamlPath)) {
@@ -131,7 +131,7 @@ class Config
                 }
             }
         }
-        
+
         // Fallback sur PHP si YAML non trouvé
         if (!$configLoaded && file_exists($configPath)) {
             $phpConfig = require $configPath;
@@ -144,6 +144,11 @@ class Config
         // ÉTAPE 3 : Remplacer les valeurs par les variables d'env
         // ─────────────────────────────────────────────────────────────
         self::mergeEnvIntoConfig();
+
+        // ─────────────────────────────────────────────────────────────
+        // ÉTAPE 4 : Appliquer les défauts selon l'environnement
+        // ─────────────────────────────────────────────────────────────
+        self::applyEnvironmentDefaults();
 
         self::$initialized = true;
     }
@@ -248,7 +253,7 @@ class Config
             if (str_starts_with($configKey, 'db.') && !isset($_ENV['DATABASE_URL'])) {
                 $configKey = 'database.' . substr($configKey, 3);
             }
-            
+
             // SESSION_NAME → session.name, SESSION_LIFETIME → session.lifetime, etc.
             if (str_starts_with($configKey, 'session.')) {
                 // Déjà au bon format
@@ -261,6 +266,91 @@ class Config
 
             // Définir la valeur (les variables d'env ont la priorité)
             self::setNested($configKey, $value);
+        }
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════
+     * APPLIQUER LES DÉFAUTS SELON L'ENVIRONNEMENT
+     * ═══════════════════════════════════════════════════════════════════
+     * 
+     * Configure automatiquement les paramètres selon APP_ENV :
+     * - dev  : debug activé, logs détaillés, session non-sécurisée
+     * - prod : debug désactivé, logs minimaux, session sécurisée
+     * - test : debug activé, logs warning
+     * 
+     * Ces valeurs sont appliquées SEULEMENT si non définies manuellement.
+     * L'utilisateur peut toujours surcharger dans .env.
+     * 
+     * ═══════════════════════════════════════════════════════════════════
+     */
+    private static function applyEnvironmentDefaults(): void
+    {
+        $env = self::get('app.env', 'dev');
+
+        // Valider APP_SECRET en production
+        if ($env === 'prod') {
+            $secret = self::get('app.secret');
+            if (empty($secret) || $secret === 'changeme-in-production') {
+                throw new \RuntimeException(
+                    'APP_SECRET doit être défini en production. ' .
+                        'Générez une clé avec: php -r "echo bin2hex(random_bytes(32));"'
+                );
+            }
+        }
+
+        // Défauts selon l'environnement
+        $defaults = match ($env) {
+            'prod' => [
+                'app.debug' => false,
+                'session.secure' => true,
+                'session.httponly' => true,
+                'session.samesite' => 'Strict',
+                'session.lifetime' => 3600,
+                'session.name' => 'OGAN_SESS',
+                'log.level' => 'error',
+                'cache.enabled' => true,
+            ],
+            'test' => [
+                'app.debug' => true,
+                'session.secure' => false,
+                'session.httponly' => true,
+                'session.samesite' => 'Lax',
+                'session.lifetime' => 7200,
+                'session.name' => 'OGAN_TEST',
+                'log.level' => 'warning',
+                'cache.enabled' => false,
+            ],
+            default => [ // dev
+                'app.debug' => true,
+                'session.secure' => false,
+                'session.httponly' => true,
+                'session.samesite' => 'Lax',
+                'session.lifetime' => 7200,
+                'session.name' => 'OGAN_DEV',
+                'log.level' => 'debug',
+                'cache.enabled' => false,
+                'mailer.dsn' => 'smtp://127.0.0.1:1025', // MailHog par défaut
+            ],
+        };
+
+        // Défauts communs à tous les environnements
+        $commonDefaults = [
+            'session.path' => '/',
+            'session.domain' => '',
+            'log.path' => 'var/log',
+            'cache.path' => 'var/cache',
+            'router.base.path' => '',
+        ];
+
+        // Fusionner défauts communs
+        $defaults = array_merge($commonDefaults, $defaults);
+
+        // Appliquer les défauts SEULEMENT si non définis
+        foreach ($defaults as $key => $value) {
+            if (!self::has($key)) {
+                self::setNested($key, $value);
+            }
         }
     }
 
@@ -287,12 +377,12 @@ class Config
         if (str_starts_with($url, 'sqlite:')) {
             // Format: sqlite:///path/to/db.sqlite ou sqlite:///var/app.db
             $path = preg_replace('#^sqlite:///+#', '', $url);
-            
+
             // Remplacer %kernel.project_dir% par PROJECT_ROOT
             if (defined('PROJECT_ROOT')) {
                 $path = str_replace('%kernel.project_dir%', PROJECT_ROOT, $path);
             }
-            
+
             return [
                 'driver' => 'sqlite',
                 'name' => $path,
@@ -301,7 +391,7 @@ class Config
 
         // Parse URL standard
         $parsed = parse_url($url);
-        
+
         if ($parsed === false) {
             throw new \InvalidArgumentException("DATABASE_URL invalide: {$url}");
         }
