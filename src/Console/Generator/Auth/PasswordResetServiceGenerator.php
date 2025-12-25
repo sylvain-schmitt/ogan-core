@@ -43,7 +43,7 @@ class PasswordResetServiceGenerator extends AbstractGenerator
  * Gère la réinitialisation des mots de passe (via email ou direct).
  * 
  * Le template de l'email est modifiable dans :
- * templates/emails/reset-password.ogan
+ * templates/emails/password_reset.ogan
  * 
  * ═══════════════════════════════════════════════════════════════════════
  */
@@ -60,10 +60,23 @@ use Ogan\View\View;
 class PasswordResetService
 {
     private PasswordHasher $hasher;
+    private ?View $view = null;
 
     public function __construct()
     {
         $this->hasher = new PasswordHasher();
+    }
+
+    /**
+     * Récupère l'instance View pour le rendu des templates email
+     */
+    private function getView(): View
+    {
+        if ($this->view === null) {
+            $templatesPath = Config::get('view.templates_path', dirname(__DIR__, 2) . '/templates');
+            $this->view = new View($templatesPath);
+        }
+        return $this->view;
     }
 
     /**
@@ -77,22 +90,23 @@ class PasswordResetService
         $user->save();
 
         try {
-            $mailer = new Mailer(Config::get('mailer.dsn', 'smtp://localhost:1025'));
+            $dsn = Config::get('mailer.dsn') ?? Config::get('mail.dsn', 'smtp://localhost:1025');
+            $mailer = new Mailer($dsn);
             
             $resetUrl = $this->getBaseUrl() . '/reset-password/' . $token;
             
-            // S'assurer que mail.from est une string
+            // Récupérer les paramètres d'envoi
             $fromEmail = Config::get('mail.from', 'noreply@example.com');
             if (is_array($fromEmail)) {
                 $fromEmail = $fromEmail[0] ?? 'noreply@example.com';
             }
-            $fromName = Config::get('mail.from_name', '');
+            $fromName = Config::get('mail.from_name', Config::get('app.name', ''));
             if (is_array($fromName)) {
                 $fromName = $fromName[0] ?? '';
             }
             
             // Rendre le template email (modifiable par l'utilisateur)
-            $htmlContent = View::render('emails/password_reset.ogan', [
+            $htmlContent = $this->getView()->render('emails/password_reset.ogan', [
                 'user' => $user,
                 'url' => $resetUrl,
                 'appName' => Config::get('app.name', 'Mon Application'),
@@ -107,6 +121,7 @@ class PasswordResetService
             $mailer->send($email);
             return true;
         } catch (\Exception $e) {
+            error_log('Password reset email error: ' . $e->getMessage());
             return false;
         }
     }
@@ -168,6 +183,12 @@ class PasswordResetService
      */
     private function getBaseUrl(): string
     {
+        // Priorité : config > server
+        $configUrl = Config::get('app.url') ?? Config::get('app.base_url');
+        if ($configUrl) {
+            return rtrim($configUrl, '/');
+        }
+        
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         return $protocol . '://' . $host;
