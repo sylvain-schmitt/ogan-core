@@ -74,7 +74,9 @@ class PasswordResetService
     {
         if ($this->view === null) {
             $templatesPath = Config::get('view.templates_path', dirname(__DIR__, 2) . '/templates');
-            $this->view = new View($templatesPath);
+            $cacheDir = Config::get('cache.path', dirname(__DIR__, 2) . '/var/cache') . '/templates';
+            // Activer le compilateur pour les templates .ogan
+            $this->view = new View($templatesPath, true, $cacheDir);
         }
         return $this->view;
     }
