@@ -270,9 +270,53 @@ class Config
                 $configKey = 'session.' . $sessionKey;
             }
 
+            // Convertir les valeurs en types appropriés
+            $value = self::convertEnvValue($value);
+
             // Définir la valeur (les variables d'env ont la priorité)
             self::setNested($configKey, $value);
         }
+    }
+
+    /**
+     * Convertit une valeur d'environnement en type PHP approprié
+     * 
+     * - "true", "false" → bool
+     * - "null" → null
+     * - nombres → int/float
+     */
+    private static function convertEnvValue(mixed $value): mixed
+    {
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        $lower = strtolower(trim($value));
+
+        // Booléens
+        if ($lower === 'true' || $lower === '1' || $lower === 'on' || $lower === 'yes') {
+            return true;
+        }
+        if ($lower === 'false' || $lower === '0' || $lower === 'off' || $lower === 'no') {
+            return false;
+        }
+
+        // Null
+        if ($lower === 'null' || $lower === '') {
+            return null;
+        }
+
+        // Entiers
+        if (ctype_digit($value) || (str_starts_with($value, '-') && ctype_digit(substr($value, 1)))) {
+            return (int) $value;
+        }
+
+        // Flottants
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        return $value;
     }
 
     /**
