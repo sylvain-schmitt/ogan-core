@@ -41,10 +41,17 @@ use Ogan\Controller\AbstractController;
 use Ogan\Http\Request;
 use Ogan\Http\Response;
 use Ogan\Router\Attributes\Route;
+use Ogan\Security\Attribute\IsGranted;
 use Ogan\Security\PasswordHasher;
 use App\Security\UserAuthenticator;
 use App\Form\ProfileFormType;
 
+/**
+ * Dashboard Controller - Réservé aux administrateurs
+ * 
+ * Note: Modifier #[IsGranted('ROLE_ADMIN')] si vous souhaitez un autre rôle
+ */
+#[IsGranted('ROLE_ADMIN', message: 'Accès réservé aux administrateurs.')]
 class DashboardController extends AbstractController
 {
     private ?UserAuthenticator $auth = null;
@@ -60,14 +67,11 @@ class DashboardController extends AbstractController
     #[Route(path: '/dashboard', methods: ['GET'], name: 'dashboard_index')]
     public function index(): Response
     {
-        if (!$this->getAuth()->isLoggedIn($this->session)) {
-            return $this->redirect('/login');
-        }
-
-        $user = $this->getAuth()->getUser($this->session);
+        $user = $this->getUser();
 
         return $this->render('dashboard/index.ogan', [
-            'user' => $user
+            'user' => $user,
+            'title' => 'Tableau de bord'
         ]);
     }
 
