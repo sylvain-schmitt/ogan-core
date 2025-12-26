@@ -45,7 +45,7 @@ class Router implements RouterInterface
     {
         // Détecter l'environnement et le cache
         $this->detectEnvironment();
-        
+
         // En prod, essayer de charger depuis le cache
         if ($this->environment !== 'dev' && $this->loadFromCache()) {
             return; // Routes chargées depuis le cache
@@ -69,10 +69,10 @@ class Router implements RouterInterface
         if (class_exists(\Ogan\Config\Config::class)) {
             $this->environment = \Ogan\Config\Config::get('app.env', 'dev');
             $routeCacheEnabled = \Ogan\Config\Config::get('cache.routes.enabled', true);
-            
+
             if ($routeCacheEnabled) {
                 $this->cacheFile = \Ogan\Config\Config::get(
-                    'cache.routes.file', 
+                    'cache.routes.file',
                     dirname(__DIR__, 2) . '/var/cache/routes.php'
                 );
             }
@@ -89,7 +89,7 @@ class Router implements RouterInterface
         }
 
         $cached = require $this->cacheFile;
-        
+
         if (!is_array($cached)) {
             return false;
         }
@@ -102,7 +102,7 @@ class Router implements RouterInterface
                 $routeData['method'],
                 $routeData['name']
             );
-            
+
             // Restaurer les middlewares
             if (!empty($routeData['middlewares'])) {
                 foreach ($routeData['middlewares'] as $middleware) {
@@ -138,7 +138,7 @@ class Router implements RouterInterface
             }
 
             $refClass = new ReflectionClass($className);
-            
+
             // Vérifier si la classe a un attribut #[Route] (pour le préfixe)
             $classAttributes = $refClass->getAttributes(RouteAttribute::class);
             $classRoute = !empty($classAttributes) ? $classAttributes[0]->newInstance() : null;
@@ -227,7 +227,7 @@ class Router implements RouterInterface
         $middlewares = $attributes['middlewares'] ?? [];
         $namespace = $attributes['namespace'] ?? null;
         $domain = $attributes['domain'] ?? null;
-        
+
         $newGroup = new RouteGroup($prefix, $middlewares, $namespace, $domain);
 
         // Si un groupe parent existe, on fusionne
@@ -251,7 +251,7 @@ class Router implements RouterInterface
         // Appliquer les attributs du groupe actif
         if (!empty($this->groupStack)) {
             $group = end($this->groupStack);
-            
+
             // Préfixe
             $path = rtrim($group->getPrefix(), '/') . '/' . ltrim($path, '/');
             if ($path !== '/') {
@@ -396,16 +396,16 @@ class Router implements RouterInterface
                         'params' => $params
                     ]);
                 }
-                
+
                 // ─────────────────────────────────────────────────────────────
                 // ÉTAPE 1 : Récupérer les middlewares de la route
                 // ─────────────────────────────────────────────────────────────
                 $middlewares = $route->getMiddlewares();
-                
+
                 // ─────────────────────────────────────────────────────────────
                 // ÉTAPE 2 : Définir le handler final (contrôleur)
                 // ─────────────────────────────────────────────────────────────
-                $finalHandler = function(RequestInterface $request) use ($route, $params, $container) {
+                $finalHandler = function (RequestInterface $request) use ($route, $params, $container) {
                     // Instanciation via container => injection constructeur automatique
                     $controller = $container->get($route->controllerClass);
 
@@ -425,51 +425,69 @@ class Router implements RouterInterface
                         $params,
                         $request
                     );
-                    
+
                     if ($accessDenied !== null) {
                         return $accessDenied;
                     }
 
                     // Appel de la méthode avec les params extraits
-                    $result = call_user_func_array([$controller, $route->controllerMethod], $params);
-                    
+                    try {
+                        $result = call_user_func_array([$controller, $route->controllerMethod], $params);
+                    } catch (\Ogan\Security\Authorization\AccessDeniedException $e) {
+                        // Afficher la page 403
+                        $response = new Response();
+                        $response->setStatusCode(403);
+
+                        try {
+                            $templatesPath = \Ogan\Config\Config::get('view.templates_path', 'templates');
+                            $cacheDir = \Ogan\Config\Config::get('cache.path', 'var/cache') . '/templates';
+                            $view = new \Ogan\View\View($templatesPath, true, $cacheDir);
+                            $content = $view->render('errors/403.ogan', ['message' => $e->getMessage()]);
+                            $response->setContent($content);
+                        } catch (\Exception $viewException) {
+                            $response->setContent('<h1>403 - Accès Refusé</h1><p>' . htmlspecialchars($e->getMessage()) . '</p>');
+                        }
+
+                        return $response;
+                    }
+
                     // Si le contrôleur retourne une réponse, on l'utilise
                     if ($result instanceof ResponseInterface) {
                         return $result;
                     }
-                    
+
                     // Sinon on retourne la réponse par défaut (cas où le contrôleur a fait des echo)
                     return new Response();
                 };
-                
+
                 // ─────────────────────────────────────────────────────────────
                 // ÉTAPE 3 : Exécuter les middlewares (s'il y en a)
                 // ─────────────────────────────────────────────────────────────
                 if (!empty($middlewares)) {
                     $pipeline = new \Ogan\Middleware\MiddlewarePipeline();
-                    
+
                     // Ajouter tous les middlewares au pipeline
                     foreach ($middlewares as $middleware) {
                         if (is_string($middleware) && $container->has($middleware)) {
                             $middleware = $container->get($middleware);
                         }
-                        
+
                         if ($middleware instanceof \Ogan\Middleware\MiddlewareInterface) {
                             $pipeline->pipe($middleware);
                         }
                     }
-                    
+
                     // Exécuter le pipeline
                     $response = $pipeline->handle($request, $finalHandler);
                 } else {
                     // Pas de middlewares, appeler directement le contrôleur
                     $response = $finalHandler($request);
                 }
-                
+
                 if ($response instanceof ResponseInterface) {
                     $response->send();
                 }
-                
+
                 return;
             }
         }
@@ -551,7 +569,7 @@ class Router implements RouterInterface
         foreach ($allGrants as $grantAttribute) {
             /** @var \Ogan\Security\Attribute\IsGranted $grant */
             $grant = $grantAttribute->newInstance();
-            
+
             // Résoudre le sujet si spécifié
             $subject = null;
             if ($grant->subject !== null && isset($params[$grant->subject])) {
@@ -562,16 +580,16 @@ class Router implements RouterInterface
             if (!$checker->isGranted($grant->attribute, $subject)) {
                 // Non autorisé - rediriger vers login ou afficher 403
                 $accessDeniedUrl = \Ogan\Config\Config::get('security.access_denied_url', '/login');
-                
+
                 // Si l'utilisateur n'est pas connecté, rediriger vers login
                 if ($user === null) {
                     return (new Response())->redirect($accessDeniedUrl);
                 }
-                
+
                 // Sinon, afficher une erreur 403
                 $response = new Response();
                 $response->setStatusCode(403);
-                
+
                 // Essayer de charger le template 403
                 try {
                     $templatesPath = \Ogan\Config\Config::get('view.templates_path', 'templates');
@@ -581,7 +599,7 @@ class Router implements RouterInterface
                 } catch (\Exception $e) {
                     $response->setContent('<h1>403 - Access Denied</h1><p>' . htmlspecialchars($grant->message) . '</p>');
                 }
-                
+
                 return $response;
             }
         }
@@ -600,14 +618,14 @@ class Router implements RouterInterface
 
         $session = $request->getSession();
         $userId = $session->get('_auth_user_id');
-        
+
         if (!$userId) {
             return null;
         }
 
         // Récupérer la classe User configurée
         $userClass = \Ogan\Config\Config::get('security.user_class', 'App\\Model\\User');
-        
+
         if (!class_exists($userClass) || !method_exists($userClass, 'find')) {
             return null;
         }
@@ -615,4 +633,3 @@ class Router implements RouterInterface
         return $userClass::find($userId);
     }
 }
-
