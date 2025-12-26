@@ -82,17 +82,17 @@ abstract class AbstractController
         if (is_object($data) && method_exists($data, 'toArray')) {
             $data = $data->toArray();
         }
-        
+
         // Si c'est une collection de modèles
         if (is_array($data) && isset($data[0]) && is_object($data[0]) && method_exists($data[0], 'toArray')) {
             $data = array_map(fn($item) => $item->toArray(), $data);
         }
 
         $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        
+
         $response = new Response($json, $status);
         $response->setHeader('Content-Type', 'application/json');
-        
+
         return $response;
     }
 
@@ -220,12 +220,52 @@ abstract class AbstractController
 
     /**
      * Crée une réponse "Access Denied" (403)
+     * 
+     * @param string $message Message à afficher
+     * @param int $status Code HTTP (403 par défaut)
      */
-    protected function accessDenied(string $message = 'Access Denied.'): Response
+    protected function accessDenied(string $message = 'Access Denied.', int $status = 403): Response
     {
         return $this->response
-            ->setStatusCode(403)
+            ->setStatusCode($status)
             ->setContent($this->view->render('errors/403.ogan', ['message' => $message]));
     }
-}
 
+    /**
+     * Bloque l'accès si une condition est vraie
+     * 
+     * Utile pour désactiver des routes via configuration (.env).
+     * 
+     * Exemple:
+     *   $this->denyAccessIf(!Config::get('registration.enabled', true), 'Inscriptions fermées');
+     * 
+     * @param bool $condition Si true, l'accès est refusé
+     * @param string $message Message à afficher
+     * @throws \Ogan\Security\Authorization\AccessDeniedException
+     */
+    protected function denyAccessIf(bool $condition, string $message = 'Cette fonctionnalité est désactivée.'): void
+    {
+        if ($condition) {
+            throw new \Ogan\Security\Authorization\AccessDeniedException($message);
+        }
+    }
+
+    /**
+     * Bloque l'accès si une fonctionnalité est désactivée dans la config
+     * 
+     * Exemple:
+     *   $this->denyIfDisabled('registration', 'Les inscriptions sont fermées.');
+     * 
+     * @param string $feature Nom de la fonctionnalité (ex: 'registration', 'contact')
+     * @param string $message Message à afficher
+     * @throws \Ogan\Security\Authorization\AccessDeniedException
+     */
+    protected function denyIfDisabled(string $feature, ?string $message = null): void
+    {
+        $enabled = \Ogan\Config\Config::get("{$feature}.enabled", true);
+        if (!$enabled) {
+            $message = $message ?? "Cette fonctionnalité ({$feature}) est désactivée.";
+            throw new \Ogan\Security\Authorization\AccessDeniedException($message);
+        }
+    }
+}
