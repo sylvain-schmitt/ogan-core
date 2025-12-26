@@ -442,6 +442,21 @@ class Router implements RouterInterface
                             $templatesPath = \Ogan\Config\Config::get('view.templates_path', 'templates');
                             $cacheDir = \Ogan\Config\Config::get('cache.path', 'var/cache') . '/templates';
                             $view = new \Ogan\View\View($templatesPath, true, $cacheDir);
+
+                            // Injecter la session si disponible
+                            if ($request->hasSession()) {
+                                $view->setSession($request->getSession());
+                            }
+
+                            // Injecter le Router pour les helpers url()/path()
+                            $view->setRouter($this);
+
+                            // Injecter l'utilisateur si disponible
+                            $user = $this->getCurrentUser($request);
+                            if ($user !== null) {
+                                $view->setUser($user);
+                            }
+
                             $content = $view->render('errors/403.ogan', ['message' => $e->getMessage()]);
                             $response->setContent($content);
                         } catch (\Exception $viewException) {
@@ -593,7 +608,22 @@ class Router implements RouterInterface
                 // Essayer de charger le template 403
                 try {
                     $templatesPath = \Ogan\Config\Config::get('view.templates_path', 'templates');
-                    $view = new \Ogan\View\View($templatesPath, true);
+                    $cacheDir = \Ogan\Config\Config::get('cache.path', 'var/cache') . '/templates';
+                    $view = new \Ogan\View\View($templatesPath, true, $cacheDir);
+
+                    // Injecter la session si disponible
+                    if ($request->hasSession()) {
+                        $view->setSession($request->getSession());
+                    }
+
+                    // Injecter le Router pour les helpers url()/path()
+                    $view->setRouter($this);
+
+                    // Injecter l'utilisateur pour app.user
+                    if ($user !== null) {
+                        $view->setUser($user);
+                    }
+
                     $content = $view->render('errors/403.ogan', ['message' => $grant->message]);
                     $response->setContent($content);
                 } catch (\Exception $e) {
