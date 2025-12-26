@@ -314,6 +314,7 @@ PHP;
 
 namespace App\Form;
 
+use App\Model\User;
 use Ogan\Form\AbstractType;
 use Ogan\Form\FormBuilder;
 use Ogan\Form\Types\TextType;
@@ -323,11 +324,15 @@ use Ogan\Form\Types\SubmitType;
 use Ogan\Form\Constraint\Required;
 use Ogan\Form\Constraint\Email;
 use Ogan\Form\Constraint\MinLength;
+use Ogan\Form\Constraint\UniqueEntity;
 
 class ProfileFormType extends AbstractType
 {
     public function buildForm(FormBuilder $builder, array $options): void
     {
+        // Récupérer l'ID utilisateur pour exclure de la vérification d'unicité
+        $userId = $options['user_id'] ?? null;
+
         $builder
             ->add('name', TextType::class, [
                 'label' => 'Nom complet',
@@ -344,7 +349,8 @@ class ProfileFormType extends AbstractType
                 'label' => 'Adresse email',
                 'constraints' => [
                     new Required('L\'email est obligatoire'),
-                    new Email('L\'email n\'est pas valide')
+                    new Email('L\'email n\'est pas valide'),
+                    new UniqueEntity(User::class, 'email', 'Cet email est déjà utilisé.', $userId)
                 ],
                 'attr' => [
                     'class' => 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white',

@@ -97,7 +97,8 @@ class DashboardController extends AbstractController
 
         $form = $this->formFactory->create(ProfileFormType::class, [
             'action' => '/profile/edit',
-            'method' => 'POST'
+            'method' => 'POST',
+            'user_id' => $user->getId()
         ]);
 
         // Pré-remplir avec les données actuelles
