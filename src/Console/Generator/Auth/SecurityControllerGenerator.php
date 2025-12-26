@@ -75,6 +75,34 @@ class SecurityController extends AbstractController
         $this->rememberMe = new RememberMeService();
     }
 
+    /**
+     * Détermine l'URL de redirection après login selon le rôle
+     * 
+     * Configure dans parameters.yaml:
+     *   auth:
+     *     login_redirect: /          # Défaut pour les users
+     *     role_redirects:
+     *       ROLE_ADMIN: /dashboard
+     *       ROLE_AUTHOR: /my-articles
+     */
+    private function getLoginRedirectUrl(User $user): string
+    {
+        // Récupérer les redirections par rôle depuis la config
+        $roleRedirects = Config::get('auth.role_redirects', []);
+        
+        if (!empty($roleRedirects)) {
+            // Vérifier chaque rôle dans l'ordre de priorité
+            foreach ($roleRedirects as $role => $redirectUrl) {
+                if ($user->hasRole($role)) {
+                    return $redirectUrl;
+                }
+            }
+        }
+        
+        // Redirection par défaut
+        return Config::get('auth.login_redirect', '/dashboard');
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // 🔐 LOGIN
     // ═══════════════════════════════════════════════════════════════════
@@ -83,7 +111,8 @@ class SecurityController extends AbstractController
     public function login()
     {
         if ($this->authenticator->isLoggedIn($this->session)) {
-            return $this->redirect(Config::get('auth.login_redirect', '/dashboard'));
+            $user = $this->authenticator->getUser($this->session);
+            return $this->redirect($this->getLoginRedirectUrl($user));
         }
 
         $form = $this->formFactory->create(LoginFormType::class, [
@@ -111,7 +140,7 @@ class SecurityController extends AbstractController
                         }
                         
                         $this->addFlash('success', 'Connexion réussie. Bienvenue !');
-                        return $this->redirect(Config::get('auth.login_redirect', '/dashboard'));
+                        return $this->redirect($this->getLoginRedirectUrl($user));
                     }
                 } else {
                     $form->addError('email', 'Email ou mot de passe incorrect.');
@@ -177,7 +206,7 @@ class SecurityController extends AbstractController
                 
                 $this->authenticator->login($user, $this->session);
                 $this->addFlash('success', 'Compte créé avec succès !');
-                return $this->redirect(Config::get('auth.login_redirect', '/dashboard'));
+                return $this->redirect($this->getLoginRedirectUrl($user));
             }
         }
 
