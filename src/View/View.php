@@ -298,6 +298,40 @@ class View implements ViewInterface
         $this->appGlobal->setUser($user);
     }
 
+    /**
+     * Vérifie si l'utilisateur courant a un rôle/permission
+     * 
+     * Usage dans les templates:
+     *   {% if is_granted('ROLE_ADMIN') %}
+     *       <a href="/dashboard">Dashboard Admin</a>
+     *   {% endif %}
+     * 
+     * @param string $attribute Le rôle ou permission à vérifier
+     * @param mixed $subject Optionnel, le sujet de la vérification
+     * @return bool
+     */
+    public function is_granted(string $attribute, mixed $subject = null): bool
+    {
+        $user = $this->appGlobal->getUser();
+        
+        if ($user === null) {
+            return false;
+        }
+        
+        // Vérification simple de rôle si l'utilisateur a hasRole
+        if (str_starts_with($attribute, 'ROLE_') && method_exists($user, 'hasRole')) {
+            return $user->hasRole($attribute);
+        }
+        
+        // Vérification via le système d'autorisation complet
+        if (class_exists(\Ogan\Security\Authorization\AuthorizationChecker::class)) {
+            $checker = new \Ogan\Security\Authorization\AuthorizationChecker($user);
+            return $checker->isGranted($attribute, $subject);
+        }
+        
+        return false;
+    }
+
     // SessionHelper
     public function setSession(\Ogan\Session\SessionInterface $session): void
     {
