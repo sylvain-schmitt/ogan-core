@@ -147,7 +147,7 @@ class ExpressionCompiler implements CompilerInterface
             $expression = trim($unescapedMatch[1]);
             $unescaped = true;
         }
-        
+
         // Détecter le filtre |raw (sans échappement)
         if (preg_match('/\|raw\s*$/', $expression)) {
             $unescaped = true;
@@ -174,8 +174,20 @@ class ExpressionCompiler implements CompilerInterface
         // Si c'est une simple variable
         if (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $expression)) {
             $noEscapeMethods = [
-                'cssFramework', 'csrf_input', 'section', 'component', 'extend', 'start', 'end',
-                'formStart', 'formEnd', 'formRow', 'formLabel', 'formWidget', 'formErrors', 'formRest',
+                'cssFramework',
+                'csrf_input',
+                'section',
+                'component',
+                'extend',
+                'start',
+                'end',
+                'formStart',
+                'formEnd',
+                'formRow',
+                'formLabel',
+                'formWidget',
+                'formErrors',
+                'formRest',
                 'htmx_script'
             ];
 
@@ -207,14 +219,28 @@ class ExpressionCompiler implements CompilerInterface
 
         // Détecter les méthodes qui retournent du HTML et ne doivent pas être échappées
         $noEscapeMethods = [
-            'cssFramework', 'csrf_input', 'section', 'component', 'extend', 'start', 'end',
-            'formStart', 'formEnd', 'formRow', 'formLabel', 'formWidget', 'formErrors', 'formRest',
+            'cssFramework',
+            'csrf_input',
+            'section',
+            'component',
+            'extend',
+            'start',
+            'end',
+            'formStart',
+            'formEnd',
+            'formRow',
+            'formLabel',
+            'formWidget',
+            'formErrors',
+            'formRest',
             'htmx_script'
         ];
 
         // Fonctions globales qui retournent du HTML (pas des méthodes $this->)
         $noEscapeGlobalFunctions = [
-            'htmx_script', 'htmx_delete', 'htmx_form'
+            'htmx_script',
+            'htmx_delete',
+            'htmx_form'
         ];
 
         $isNoEscapeMethod = false;
@@ -236,11 +262,14 @@ class ExpressionCompiler implements CompilerInterface
             }
         }
 
-        if ($unescaped || $isRenderCall || $isNoEscapeMethod) {
+        // Détecter si c'est un accès à un champ de formulaire (ex: $form->title, $form->content)
+        // Ces accès retournent des objets FieldView avec __toString() qui génèrent du HTML
+        $isFormFieldAccess = preg_match('/\$form->[a-zA-Z_][a-zA-Z0-9_]*$/', $phpExpression);
+
+        if ($unescaped || $isRenderCall || $isNoEscapeMethod || $isFormFieldAccess) {
             return '<?= ' . $phpExpression . ' ?>';
         } else {
             return '<?= $this->e(' . $phpExpression . ') ?>';
         }
     }
 }
-
