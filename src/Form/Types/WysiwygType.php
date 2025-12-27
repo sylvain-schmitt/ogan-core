@@ -121,16 +121,18 @@ class WysiwygType implements FieldTypeInterface
     }
 
     /**
-     * Génère le script TinyMCE
+     * Génère le script TinyMCE avec support HTMX
      */
     private function getTinyMceScript(string $name, string $toolbar, int $height): string
     {
         $toolbarConfig = $this->getToolbarConfig($toolbar);
+        $cdnUrl = $this->getCdnUrl();
 
         return <<<HTML
-<script src="{$this->getCdnUrl()}" referrerpolicy="origin"></script>
 <script>
-    tinymce.init({
+(function() {
+    // Configuration TinyMCE pour ce champ
+    var editorConfig = {
         selector: '#{$name}',
         height: {$height},
         menubar: false,
@@ -139,8 +141,53 @@ class WysiwygType implements FieldTypeInterface
         content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; }',
         branding: false,
         promotion: false,
-        license_key: 'gpl'
-    });
+        license_key: 'gpl',
+        setup: function(editor) {
+            // Synchroniser le contenu avant soumission du formulaire
+            editor.on('change', function() {
+                editor.save();
+            });
+        }
+    };
+
+    // Fonction d'initialisation
+    function initEditor() {
+        // Supprimer l'ancien éditeur s'il existe
+        if (typeof tinymce !== 'undefined' && tinymce.get('{$name}')) {
+            tinymce.get('{$name}').remove();
+        }
+        // Initialiser le nouvel éditeur
+        if (typeof tinymce !== 'undefined') {
+            tinymce.init(editorConfig);
+        }
+    }
+
+    // Charger TinyMCE si pas encore chargé
+    if (typeof tinymce === 'undefined') {
+        var script = document.createElement('script');
+        script.src = '{$cdnUrl}';
+        script.referrerPolicy = 'origin';
+        script.onload = function() {
+            initEditor();
+        };
+        document.head.appendChild(script);
+    } else {
+        // TinyMCE déjà chargé, initialiser directement
+        initEditor();
+    }
+
+    // Réinitialiser après swap HTMX (si HTMX est présent)
+    if (typeof htmx !== 'undefined') {
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            // Vérifier si le nouveau contenu contient notre éditeur
+            var editorElement = document.getElementById('{$name}');
+            if (editorElement && typeof tinymce !== 'undefined') {
+                // Petit délai pour s'assurer que le DOM est prêt
+                setTimeout(initEditor, 50);
+            }
+        });
+    }
+})();
 </script>
 HTML;
     }
