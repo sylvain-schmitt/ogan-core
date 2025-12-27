@@ -64,10 +64,10 @@ class FilterTransformer
         // On doit le faire de manière intelligente pour ne pas casser les OU logiques (||)
         // Heureusement, en PHP le OU logique est || ou OR, le bitwise OR est |
         // Dans les templates, on assume que | est un filtre sauf si c'est clairement un bitwise (rare en template)
-        
+
         // On sépare par le caractère pipe, mais attention aux parenthèses et autres structures
         $parts = $this->splitByPipe($expression);
-        
+
         if (count($parts) <= 1) {
             // Pas de filtre, on restaure et on retourne
             return $this->restoreStrings($expression, $placeholders);
@@ -75,7 +75,7 @@ class FilterTransformer
 
         // Le premier élément est la valeur
         $value = trim(array_shift($parts));
-        
+
         // Les éléments suivants sont les filtres
         foreach ($parts as $part) {
             $part = trim($part);
@@ -101,23 +101,51 @@ class FilterTransformer
             // Si on voulait supporter les tableaux, il faudrait une fonction helper qui vérifie le type à l'exécution
             return 'substr(strval(' . $value . '), 0, 1)';
         }
-        
+
         if ($filterName === 'date') {
             // On suppose que la valeur est un DateTime
             $format = $args ?? "'Y-m-d H:i:s'";
             return $value . '->format(' . $format . ')';
         }
-        
+
         // Filtre raw : retourne la valeur telle quelle (sans transformation)
         // L'ExpressionCompiler détectera ce marqueur pour ne pas échapper
         if ($filterName === 'raw') {
             return $value;
         }
 
+        // Filtres de manipulation de texte (via Ogan\Util\Text)
+        if ($filterName === 'excerpt') {
+            $length = $args !== null ? trim($args) : '150';
+            return '\Ogan\Util\Text::excerpt(' . $value . ', ' . $length . ')';
+        }
+
+        if ($filterName === 'words') {
+            $count = $args !== null ? trim($args) : '20';
+            return '\Ogan\Util\Text::words(' . $value . ', ' . $count . ')';
+        }
+
+        if ($filterName === 'truncate') {
+            $length = $args !== null ? trim($args) : '100';
+            return '\Ogan\Util\Text::truncate(' . $value . ', ' . $length . ')';
+        }
+
+        if ($filterName === 'reading_time') {
+            return '\Ogan\Util\Text::readingTimeFormatted(' . $value . ')';
+        }
+
+        if ($filterName === 'word_count') {
+            return '\Ogan\Util\Text::wordCount(' . $value . ')';
+        }
+
+        if ($filterName === 'strip_html') {
+            return '\Ogan\Util\Text::stripHtml(' . $value . ')';
+        }
+
         // Filtres standards mappés
         if (isset(self::FILTERS[$filterName])) {
             $phpFunc = self::FILTERS[$filterName];
-            
+
             if ($args !== null && trim($args) !== '') {
                 return $phpFunc . '(' . $value . ', ' . $args . ')';
             } else {
@@ -146,7 +174,7 @@ class FilterTransformer
 
         for ($i = 0; $i < $len; $i++) {
             $char = $expression[$i];
-            
+
             // Gestion des chaînes (bien que déjà protégées, on garde la logique robuste)
             // Comme on a remplacé les chaînes par des placeholders, on ne devrait pas rencontrer de " ou ' réels
             // sauf s'ils font partie de la syntaxe environnante non protégée (rare)
@@ -176,7 +204,7 @@ class FilterTransformer
                 $buffer .= $char;
             }
         }
-        
+
         if ($buffer !== '') {
             $parts[] = $buffer;
         }
