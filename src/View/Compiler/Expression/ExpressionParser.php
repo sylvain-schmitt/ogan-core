@@ -64,7 +64,7 @@ class ExpressionParser
         // Propriétés supportées: user, session, request, flashes, debug, environment
         $appProperties = ['user', 'session', 'request', 'flashes', 'debug', 'environment'];
         $appPropertiesPattern = implode('|', $appProperties);
-        
+
         $expression = preg_replace_callback(
             '/\bapp\.(' . $appPropertiesPattern . ')\b/',
             function ($matches) {
@@ -82,7 +82,7 @@ class ExpressionParser
 
         // ÉTAPE 2 : Gérer les appels de fonctions (section, route, path, component, etc.)
         // Ces fonctions doivent être transformées en $this->functionName(...)
-        $thisMethods = ['section', 'route', 'path', 'url', 'asset', 'css', 'js', 'component', 'e', 'escape', 'block', 'csrf_token', 'csrf_input', 'cssFramework', 'extend', 'start', 'end', 'hasFlash', 'getFlash', 'get', 'set', 'has', 'app'];
+        $thisMethods = ['section', 'route', 'path', 'url', 'asset', 'css', 'js', 'component', 'e', 'escape', 'block', 'csrf_token', 'csrf_input', 'cssFramework', 'extend', 'start', 'end', 'hasFlash', 'getFlash', 'get', 'set', 'has', 'app', 'is_granted', 'dump'];
 
         // Détecter les appels de fonctions même après protection des chaînes
         // Le pattern doit aussi matcher les placeholders de chaînes (##STRING_X##)
@@ -228,7 +228,7 @@ class ExpressionParser
                 // Vérifier ce qui précède le nom de la fonction
                 $startOfFunc = $pos - strlen($funcMatch[0]);
                 $beforeFunc = substr($args, 0, $startOfFunc);
-                
+
                 if (
                     in_array($functionName, $thisMethods) &&
                     !preg_match('/\$this->\s*$/', $beforeFunc)
