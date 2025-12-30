@@ -417,8 +417,10 @@ HTML;
     
     <script>
     function copyError() {
-        var text = "{$shortClass}: " + document.querySelector('.message-box').textContent + "\\n";
-        text += "File: {$fileHtml}:{$line}";
+        var exClass = document.querySelector('.exception-class').textContent;
+        var message = document.querySelector('.message-box').textContent;
+        var fileInfo = document.querySelector('.info-value').textContent;
+        var text = exClass + ": " + message + "\\n" + "File: " + fileInfo;
         navigator.clipboard.writeText(text).then(function() {
             alert('Erreur copiée !');
         });
@@ -911,8 +913,10 @@ HTML;
     
     <script>
     function copyError() {
-        var text = "{$shortClass}: {$message}\\n";
-        text += "File: {$fileHtml}:{$line}";
+        var exClass = document.querySelector('.exception-class').textContent;
+        var message = document.querySelector('.message-box').textContent;
+        var fileInfo = document.querySelector('.info-value').textContent;
+        var text = exClass + ": " + message + "\\n" + "File: " + fileInfo;
         navigator.clipboard.writeText(text).then(function() {
             alert('Erreur copiée !');
         });
