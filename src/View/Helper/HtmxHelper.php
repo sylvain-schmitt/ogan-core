@@ -63,15 +63,21 @@ class HtmxHelper
 
         $scriptPath = Config::get('frontend.htmx.script', '/js/htmx.min.js');
         $progressBar = Config::get('frontend.htmx.progress_bar', true);
-        
+
         $html = '<script src="' . htmlspecialchars($scriptPath) . '"></script>';
-        
+
         // Ajouter la barre de progression si activée
         if ($progressBar) {
             $html .= self::progressBarStyles();
             $html .= self::progressBarScript();
         }
-        
+
+        // Ajouter le container pour les erreurs HTMX (pour les toasts en mode production)
+        $html .= '<div id="htmx-error-container"></div>';
+
+        // Ajouter le script de gestion des erreurs HTMX
+        $html .= self::errorHandlerScript();
+
         return $html;
     }
 
@@ -167,6 +173,44 @@ CSS;
         init();
     }
 })();
+</script>
+JS;
+    }
+
+    /**
+     * SCRIPT DE GESTION DES ERREURS HTMX
+     * 
+     * Gère les réponses d'erreur HTMX :
+     * - En mode debug : exécute le script qui remplace le document par la page d'erreur
+     * - En mode production : injecte le toast d'erreur dans le container
+     */
+    private static function errorHandlerScript(): string
+    {
+        return <<<'JS'
+<script>
+document.addEventListener('htmx:afterRequest', function(event) {
+    var xhr = event.detail.xhr;
+    if (!xhr || xhr.status < 400) { return; }
+    
+    var response = xhr.responseText || '';
+    
+    /* Debug mode: script with document.write */
+    if (response.indexOf('document.write(') !== -1 && response.indexOf('document.open()') !== -1) {
+        var temp = document.createElement('div');
+        temp.innerHTML = response;
+        var script = temp.querySelector('script');
+        if (script) {
+            var newScript = document.createElement('script');
+            newScript.textContent = script.textContent;
+            document.body.appendChild(newScript);
+        }
+    }
+    /* Production mode: toast */
+    else if (response.indexOf('htmx-error-toast') !== -1) {
+        var container = document.getElementById('htmx-error-container');
+        if (container) { container.innerHTML = response; }
+    }
+});
 </script>
 JS;
     }
