@@ -17,7 +17,7 @@ class View implements ViewInterface
     private array $blockStack = [];
     private ?TemplateCompiler $compiler = null;
     private bool $useCompiler = false;
-    
+
     // Helpers
     private FormHelper $formHelper;
     private ViewHelper $viewHelper;
@@ -29,7 +29,7 @@ class View implements ViewInterface
     {
         $this->basePath = rtrim($basePath, '/');
         $this->useCompiler = $useCompiler;
-        
+
         // Initialiser les helpers
         $this->formHelper = new FormHelper();
         $this->viewHelper = new ViewHelper();
@@ -128,7 +128,7 @@ class View implements ViewInterface
 
         if ($this->layoutPath) {
             $layoutFile = $this->resolveTemplatePath(ltrim($this->layoutPath, '/'));
-            
+
             if (!$layoutFile) {
                 throw new ViewException("Layout introuvable : $this->layoutPath");
             }
@@ -313,22 +313,22 @@ class View implements ViewInterface
     public function is_granted(string $attribute, mixed $subject = null): bool
     {
         $user = $this->appGlobal->getUser();
-        
+
         if ($user === null) {
             return false;
         }
-        
+
         // Vérification simple de rôle si l'utilisateur a hasRole
         if (str_starts_with($attribute, 'ROLE_') && method_exists($user, 'hasRole')) {
             return $user->hasRole($attribute);
         }
-        
+
         // Vérification via le système d'autorisation complet
         if (class_exists(\Ogan\Security\Authorization\AuthorizationChecker::class)) {
             $checker = new \Ogan\Security\Authorization\AuthorizationChecker($user);
             return $checker->isGranted($attribute, $subject);
         }
-        
+
         return false;
     }
 

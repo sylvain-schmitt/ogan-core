@@ -42,6 +42,14 @@ class ErrorHandler
     }
 
     /**
+     * Vérifie si la requête actuelle est une requête HTMX
+     */
+    private function isHtmxRequest(): bool
+    {
+        return isset($_SERVER['HTTP_HX_REQUEST']) && $_SERVER['HTTP_HX_REQUEST'] === 'true';
+    }
+
+    /**
      * Enregistre le handler comme gestionnaire global
      */
     public function register(): void
@@ -71,6 +79,14 @@ class ErrorHandler
         // Détermine le code HTTP selon le type d'exception
         $statusCode = $this->getStatusCode($exception);
         http_response_code($statusCode);
+
+        // ═══════════════════════════════════════════════════════════════
+        // HTMX SUPPORT - Renvoie un fragment HTML au lieu d'une page complète
+        // ═══════════════════════════════════════════════════════════════
+        if ($this->isHtmxRequest()) {
+            $this->renderHtmxError($exception, $statusCode);
+            exit(1);
+        }
 
         if ($this->debug) {
             $this->renderDebugPage($exception);
@@ -120,9 +136,18 @@ class ErrorHandler
      */
     private function getStatusCode(Throwable $exception): int
     {
-        // Si l'exception a déjà un code défini
-        if ($exception->getCode() >= 400 && $exception->getCode() < 600) {
-            return $exception->getCode();
+        // Le code d'exception peut être une string (ex: "0" ou "HY000" pour PDO)
+        // On le convertit en int de manière sécurisée
+        $code = $exception->getCode();
+
+        // Si c'est une string, essayer de la convertir
+        if (is_string($code)) {
+            $code = (int) $code;
+        }
+
+        // Si l'exception a un code HTTP valide (400-599)
+        if (is_int($code) && $code >= 400 && $code < 600) {
+            return $code;
         }
 
         // Selon le type d'exception
@@ -132,6 +157,89 @@ class ErrorHandler
 
         // Par défaut : 500 Internal Server Error
         return 500;
+    }
+
+    /**
+     * Affiche une erreur adaptée aux requêtes HTMX (fragment HTML)
+     * 
+     * Renvoie un fragment HTML stylisé qui peut être injecté dans la page
+     * via HX-Retarget pour afficher une notification toast.
+     */
+    private function renderHtmxError(Throwable $exception, int $statusCode): void
+    {
+        // Nettoyer les buffers de sortie
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        // Headers HTMX pour cibler le container de notifications
+        header('HX-Retarget: #htmx-error-container');
+        header('HX-Reswap: innerHTML');
+
+        $class = get_class($exception);
+        $shortClass = substr(strrchr($class, '\\'), 1) ?: $class;
+        $message = htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8');
+
+        if ($this->debug) {
+            $file = htmlspecialchars($exception->getFile(), ENT_QUOTES, 'UTF-8');
+            $line = $exception->getLine();
+
+            echo <<<HTML
+<div id="htmx-error-toast" class="fixed top-4 right-4 z-50 max-w-lg bg-red-900 border border-red-700 rounded-lg shadow-2xl p-4 animate-slide-in">
+    <div class="flex items-start gap-3">
+        <div class="flex-shrink-0">
+            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-red-200">{$shortClass} ({$statusCode})</p>
+            <p class="text-sm text-red-300 mt-1">{$message}</p>
+            <p class="text-xs text-red-400 mt-2 font-mono truncate">{$file}:{$line}</p>
+        </div>
+        <button onclick="this.closest('#htmx-error-toast').remove()" class="flex-shrink-0 text-red-400 hover:text-red-200 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+</div>
+<style>
+@keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.animate-slide-in { animation: slide-in 0.3s ease-out; }
+</style>
+HTML;
+        } else {
+            // Mode production : message générique
+            $title = match ($statusCode) {
+                403 => 'Accès refusé',
+                404 => 'Non trouvé',
+                default => 'Erreur',
+            };
+
+            echo <<<HTML
+<div id="htmx-error-toast" class="fixed top-4 right-4 z-50 max-w-md bg-red-900 border border-red-700 rounded-lg shadow-2xl p-4 animate-slide-in">
+    <div class="flex items-center gap-3">
+        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div>
+            <p class="text-sm font-bold text-red-200">{$title}</p>
+            <p class="text-sm text-red-300">Une erreur s'est produite. Veuillez réessayer.</p>
+        </div>
+        <button onclick="this.closest('#htmx-error-toast').remove()" class="ml-auto text-red-400 hover:text-red-200">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+</div>
+<style>
+@keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.animate-slide-in { animation: slide-in 0.3s ease-out; }
+</style>
+HTML;
+        }
     }
 
     /**
@@ -150,17 +258,17 @@ class ErrorHandler
 
         $start = max(0, $errorLine - $context - 1);
         $end = min(count($lines), $errorLine + $context);
-        
+
         $html = '<div class="code-excerpt">';
         for ($i = $start; $i < $end; $i++) {
             $lineNum = $i + 1;
             $lineContent = htmlspecialchars($lines[$i], ENT_QUOTES, 'UTF-8');
             $lineContent = rtrim($lineContent);
-            
+
             $isError = ($lineNum === $errorLine);
             $class = $isError ? 'error-line' : '';
             $marker = $isError ? '→' : '  ';
-            
+
             $html .= sprintf(
                 '<div class="code-line %s"><span class="line-marker">%s</span><span class="line-num">%d</span><span class="line-code">%s</span></div>',
                 $class,
@@ -170,7 +278,7 @@ class ErrorHandler
             );
         }
         $html .= '</div>';
-        
+
         return $html;
     }
 
@@ -181,33 +289,33 @@ class ErrorHandler
     {
         $trace = $exception->getTrace();
         $html = '';
-        
+
         foreach ($trace as $i => $frame) {
             $file = $frame['file'] ?? 'unknown';
             $line = $frame['line'] ?? 0;
             $function = $frame['function'] ?? '';
             $class = $frame['class'] ?? '';
             $type = $frame['type'] ?? '';
-            
+
             $shortFile = basename($file);
             $call = $class ? "{$class}{$type}{$function}()" : "{$function}()";
-            
+
             $html .= '<div class="trace-frame">';
             $html .= '<div class="trace-header" onclick="this.nextElementSibling.classList.toggle(\'hidden\')">';
             $html .= '<span class="trace-num">#' . $i . '</span>';
             $html .= '<span class="trace-call">' . htmlspecialchars($call) . '</span>';
             $html .= '<span class="trace-location">' . htmlspecialchars($shortFile) . ':' . $line . '</span>';
             $html .= '</div>';
-            
+
             if ($file !== 'unknown' && file_exists($file)) {
                 $html .= '<div class="trace-code hidden">';
                 $html .= $this->getCodeExcerpt($file, $line, 3);
                 $html .= '</div>';
             }
-            
+
             $html .= '</div>';
         }
-        
+
         return $html;
     }
 
@@ -217,19 +325,19 @@ class ErrorHandler
     private function getContextVariables(): string
     {
         $html = '<div class="context-tabs">';
-        
+
         // GET
         $html .= '<details class="context-section">';
         $html .= '<summary>$_GET (' . count($_GET) . ')</summary>';
         $html .= $this->renderVariableTable($_GET);
         $html .= '</details>';
-        
+
         // POST
         $html .= '<details class="context-section">';
         $html .= '<summary>$_POST (' . count($_POST) . ')</summary>';
         $html .= $this->renderVariableTable($_POST);
         $html .= '</details>';
-        
+
         // SESSION
         if (session_status() === PHP_SESSION_ACTIVE) {
             $html .= '<details class="context-section">';
@@ -237,27 +345,33 @@ class ErrorHandler
             $html .= $this->renderVariableTable($_SESSION);
             $html .= '</details>';
         }
-        
+
         // COOKIES
         $html .= '<details class="context-section">';
         $html .= '<summary>$_COOKIE (' . count($_COOKIE) . ')</summary>';
         $html .= $this->renderVariableTable($_COOKIE);
         $html .= '</details>';
-        
+
         // SERVER (filtered)
-        $serverFiltered = array_filter($_SERVER, function($key) {
+        $serverFiltered = array_filter($_SERVER, function ($key) {
             return in_array($key, [
-                'REQUEST_METHOD', 'REQUEST_URI', 'HTTP_HOST', 'HTTP_USER_AGENT',
-                'REMOTE_ADDR', 'SERVER_NAME', 'CONTENT_TYPE', 'HTTP_ACCEPT'
+                'REQUEST_METHOD',
+                'REQUEST_URI',
+                'HTTP_HOST',
+                'HTTP_USER_AGENT',
+                'REMOTE_ADDR',
+                'SERVER_NAME',
+                'CONTENT_TYPE',
+                'HTTP_ACCEPT'
             ]);
         }, ARRAY_FILTER_USE_KEY);
         $html .= '<details class="context-section">';
         $html .= '<summary>$_SERVER (filtered)</summary>';
         $html .= $this->renderVariableTable($serverFiltered);
         $html .= '</details>';
-        
+
         $html .= '</div>';
-        
+
         return $html;
     }
 
@@ -269,7 +383,7 @@ class ErrorHandler
         if (empty($vars)) {
             return '<em class="empty">Aucune donnée</em>';
         }
-        
+
         $html = '<table class="var-table">';
         foreach ($vars as $key => $value) {
             $keyHtml = htmlspecialchars((string)$key);
@@ -285,7 +399,7 @@ class ErrorHandler
             $html .= "<tr><td class=\"var-key\">{$keyHtml}</td><td class=\"var-value\">{$valueHtml}</td></tr>";
         }
         $html .= '</table>';
-        
+
         return $html;
     }
 
@@ -554,15 +668,15 @@ HTML;
         try {
             $templatesPath = \Ogan\Config\Config::get('view.templates_path', 'templates');
             $templateFile = rtrim($templatesPath, '/') . '/' . $templateName;
-            
+
             if (file_exists($templateFile)) {
                 $view = new \Ogan\View\View($templatesPath, true);
-                $message = $statusCode === 403 
+                $message = $statusCode === 403
                     ? 'Accès refusé.'
-                    : ($statusCode === 404 
-                        ? 'La page que vous recherchez n\'existe pas.' 
+                    : ($statusCode === 404
+                        ? 'La page que vous recherchez n\'existe pas.'
                         : 'Une erreur s\'est produite.');
-                        
+
                 echo $view->render($templateName, ['message' => $message]);
                 return;
             }

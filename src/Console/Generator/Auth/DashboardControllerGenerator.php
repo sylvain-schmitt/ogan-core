@@ -51,7 +51,7 @@ use App\Form\ProfileFormType;
  * 
  * Note: Modifier #[IsGranted('ROLE_ADMIN')] si vous souhaitez un autre rôle
  */
-#[IsGranted('ROLE_ADMIN', message: 'Accès réservé aux administrateurs.')]
+#[IsGranted('ROLE_USER', message: 'Accès réservé aux utilisateurs.')]
 class DashboardController extends AbstractController
 {
     private ?UserAuthenticator $auth = null;
