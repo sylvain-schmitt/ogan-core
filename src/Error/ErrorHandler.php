@@ -452,25 +452,39 @@ HTML;
         $shortClass = substr(strrchr($class, '\\'), 1) ?: $class;
         $message = htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8');
 
+        // Styles CSS inline pour éviter la dépendance à Tailwind
+        $styles = [
+            'toast' => 'position: fixed; top: 1rem; right: 1rem; z-index: 9999; max-width: 32rem; background-color: #7f1d1d; border: 1px solid #b91c1c; border-radius: 0.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); padding: 1rem; font-family: system-ui, -apple-system, sans-serif;',
+            'flex' => 'display: flex; align-items: flex-start; gap: 0.75rem;',
+            'icon_box' => 'flex-shrink: 0;',
+            'icon' => 'width: 1.5rem; height: 1.5rem; color: #f87171;',
+            'content' => 'flex: 1; min-width: 0;',
+            'title' => 'font-size: 0.875rem; font-weight: 700; color: #fecaca; margin: 0;',
+            'text' => 'font-size: 0.875rem; color: #fca5a5; margin: 0.25rem 0 0 0; line-height: 1.4;',
+            'meta' => 'font-size: 0.75rem; color: #f87171; margin: 0.5rem 0 0 0; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;',
+            'close_btn' => 'flex-shrink: 0; color: #f87171; background: none; border: none; cursor: pointer; padding: 0; outline: none; display: flex; align-items: center; justify-content: center;',
+            'close_icon' => 'width: 1.25rem; height: 1.25rem;'
+        ];
+
         if ($this->debug) {
             $file = htmlspecialchars($exception->getFile(), ENT_QUOTES, 'UTF-8');
             $line = $exception->getLine();
 
             echo <<<HTML
-<div id="htmx-error-toast" class="fixed top-4 right-4 z-50 max-w-lg bg-red-900 border border-red-700 rounded-lg shadow-2xl p-4 animate-slide-in">
-    <div class="flex items-start gap-3">
-        <div class="flex-shrink-0">
-            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<div id="htmx-error-toast" style="{$styles['toast']}" class="animate-slide-in">
+    <div style="{$styles['flex']}">
+        <div style="{$styles['icon_box']}">
+            <svg style="{$styles['icon']}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
             </svg>
         </div>
-        <div class="flex-1 min-w-0">
-            <p class="text-sm font-bold text-red-200">{$shortClass} ({$statusCode})</p>
-            <p class="text-sm text-red-300 mt-1">{$message}</p>
-            <p class="text-xs text-red-400 mt-2 font-mono truncate">{$file}:{$line}</p>
+        <div style="{$styles['content']}">
+            <p style="{$styles['title']}">{$shortClass} ({$statusCode})</p>
+            <p style="{$styles['text']}">{$message}</p>
+            <p style="{$styles['meta']}">{$file}:{$line}</p>
         </div>
-        <button onclick="this.closest('#htmx-error-toast').remove()" class="flex-shrink-0 text-red-400 hover:text-red-200 transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button onclick="this.closest('#htmx-error-toast').remove()" style="{$styles['close_btn']}">
+            <svg style="{$styles['close_icon']}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
         </button>
@@ -489,18 +503,24 @@ HTML;
                 default => 'Erreur',
             };
 
+            // Ajustement style pour prod (centré verticalement)
+            $styles['flex'] = 'display: flex; align-items: center; gap: 0.75rem;';
+            $styles['toast'] = str_replace('max-width: 32rem', 'max-width: 28rem', $styles['toast']);
+
             echo <<<HTML
-<div id="htmx-error-toast" class="fixed top-4 right-4 z-50 max-w-md bg-red-900 border border-red-700 rounded-lg shadow-2xl p-4 animate-slide-in">
-    <div class="flex items-center gap-3">
-        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-        </svg>
-        <div>
-            <p class="text-sm font-bold text-red-200">{$title}</p>
-            <p class="text-sm text-red-300">Une erreur s'est produite. Veuillez réessayer.</p>
+<div id="htmx-error-toast" style="{$styles['toast']}" class="animate-slide-in">
+    <div style="{$styles['flex']}">
+        <div style="{$styles['icon_box']}">
+            <svg style="{$styles['icon']}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
         </div>
-        <button onclick="this.closest('#htmx-error-toast').remove()" class="ml-auto text-red-400 hover:text-red-200">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div style="{$styles['content']}">
+            <p style="{$styles['title']}">{$title}</p>
+            <p style="{$styles['text']}">Une erreur s'est produite. Veuillez réessayer.</p>
+        </div>
+        <button onclick="this.closest('#htmx-error-toast').remove()" style="{$styles['close_btn']}">
+            <svg style="{$styles['close_icon']}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
         </button>
