@@ -95,7 +95,7 @@ class View implements ViewInterface
             $componentPath = $this->compiler->compile($componentPath);
         }
 
-        extract($props, EXTR_SKIP);
+        extract($props, EXTR_OVERWRITE);
         ob_start();
         include $componentPath;
         return ob_get_clean();
@@ -120,7 +120,7 @@ class View implements ViewInterface
             $fullPath = $this->compiler->compile($fullPath);
         }
 
-        extract($params, EXTR_SKIP);
+        extract($params, EXTR_OVERWRITE);
 
         ob_start();
         include $fullPath;
