@@ -160,9 +160,17 @@ abstract class Model
         foreach ($properties as $property) {
             $name = $property->getName();
             $getter = 'get' . ucfirst($name);
+            $isGetter = 'is' . ucfirst($name);
 
+            $methodToCall = null;
             if (method_exists($this, $getter)) {
-                $value = $this->$getter();
+                $methodToCall = $getter;
+            } elseif (method_exists($this, $isGetter)) {
+                $methodToCall = $isGetter;
+            }
+
+            if ($methodToCall) {
+                $value = $this->$methodToCall();
 
                 // Convertir les DateTime en string pour la base de données
                 if ($value instanceof \DateTime) {
@@ -427,7 +435,7 @@ abstract class Model
         // Remove 'exists' from attributes as it's not a DB column
         $data = $this->attributes;
         unset($data['exists']);
-        
+
         // Remove id if null (for PostgreSQL SERIAL / MySQL AUTO_INCREMENT)
         // The database will auto-generate the id
         // Note: use array_key_exists because isset() returns FALSE for NULL values!
@@ -435,7 +443,7 @@ abstract class Model
         if (array_key_exists($primaryKey, $data) && $data[$primaryKey] === null) {
             unset($data[$primaryKey]);
         }
-        
+
         $id = QueryBuilder::table(static::getTableName())->insert($data);
 
         if ($id > 0) {
@@ -771,14 +779,14 @@ abstract class Model
     {
         // Synchroniser les propriétés vers attributs
         $this->syncAttributesFromProperties();
-        
+
         $result = $this->filterAttributes($this->attributes);
-        
+
         // Ajouter les relations chargées si demandé
         if ($withRelations) {
             $result = $this->addLoadedRelations($result);
         }
-        
+
         return $result;
     }
 
@@ -803,12 +811,12 @@ abstract class Model
         if (!empty($this->visible)) {
             $attributes = array_intersect_key($attributes, array_flip($this->visible));
         }
-        
+
         // Supprimer les attributs cachés
         foreach ($this->hidden as $key) {
             unset($attributes[$key]);
         }
-        
+
         return $attributes;
     }
 
@@ -823,7 +831,7 @@ abstract class Model
             $property->setAccessible(true);
             $name = $property->getName();
             $value = $property->getValue($this);
-            
+
             // Si c'est une relation (collection ou modèle), la serialiser
             if ($value instanceof Model) {
                 $result[$name] = $value->toArray(false); // Éviter récursion infinie
@@ -831,7 +839,7 @@ abstract class Model
                 $result[$name] = array_map(fn($m) => $m->toArray(false), $value);
             }
         }
-        
+
         return $result;
     }
 
