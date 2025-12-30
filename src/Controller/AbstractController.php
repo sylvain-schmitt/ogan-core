@@ -38,9 +38,12 @@ abstract class AbstractController
         $this->view = new View($this->config['view']['templates_path'], $useCompiler, $cacheDir);
         $this->layout = $this->config['view']['default_layout'];
 
-        // Injection du CsrfManager dans la vue si disponible
-        if ($container->has(\Ogan\Security\CsrfManager::class)) {
-            $this->view->setCsrfManager($container->get(\Ogan\Security\CsrfManager::class));
+        // Injection du CsrfTokenManager dans la vue si disponible
+        if ($container->has(\Ogan\Security\CsrfTokenManager::class)) {
+            $this->view->setCsrfTokenManager($container->get(\Ogan\Security\CsrfTokenManager::class));
+        } elseif ($container->has(\Ogan\Security\CsrfManager::class)) {
+            // Note: CsrfManager legacy support if needed, but we prefer CsrfTokenManager
+            // For now assuming CsrfTokenManager is available if Security component is loaded
         }
 
         // Injection du FormFactory si disponible

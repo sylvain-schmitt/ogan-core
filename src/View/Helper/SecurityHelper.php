@@ -14,34 +14,38 @@
 
 namespace Ogan\View\Helper;
 
-use Ogan\Security\CsrfManager;
+use Ogan\Security\CsrfTokenManager;
 
 class SecurityHelper
 {
-    private ?CsrfManager $csrfManager = null;
+    private ?CsrfTokenManager $csrfTokenManager = null;
 
-    public function setCsrfManager(CsrfManager $manager): void
+    public function setCsrfTokenManager(CsrfTokenManager $manager): void
     {
-        $this->csrfManager = $manager;
+        $this->csrfTokenManager = $manager;
     }
 
     /**
      * Génère un token CSRF
+     * 
+     * @param string $tokenId L'identifiant du token (par défaut 'form')
      */
-    public function csrfToken(): string
+    public function csrfToken(string $tokenId = 'form'): string
     {
-        if (!$this->csrfManager) {
+        if (!$this->csrfTokenManager) {
             return '';
         }
-        return $this->csrfManager->getToken();
+        return $this->csrfTokenManager->getToken($tokenId);
     }
 
     /**
      * Génère un champ hidden avec le token CSRF
+     * 
+     * @param string $tokenId L'identifiant du token
      */
-    public function csrfInput(): string
+    public function csrfInput(string $tokenId = 'form'): string
     {
-        $token = $this->csrfToken();
+        $token = $this->csrfToken($tokenId);
         return '<input type="hidden" name="_csrf_token" value="' . $token . '">';
     }
 }

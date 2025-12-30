@@ -382,9 +382,9 @@ class View implements ViewInterface
     }
 
     // SecurityHelper
-    public function setCsrfManager(\Ogan\Security\CsrfManager $manager): void
+    public function setCsrfTokenManager(\Ogan\Security\CsrfTokenManager $manager): void
     {
-        $this->securityHelper->setCsrfManager($manager);
+        $this->securityHelper->setCsrfTokenManager($manager);
     }
 
     public function csrf_token(): string
