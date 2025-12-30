@@ -67,10 +67,7 @@ class DashboardController extends AbstractController
     #[Route(path: '/dashboard', methods: ['GET'], name: 'dashboard_index')]
     public function index(): Response
     {
-        $user = $this->getUser();
-
         return $this->render('dashboard/index.ogan', [
-            'user' => $user,
             'title' => 'Tableau de bord'
         ]);
     }
@@ -82,11 +79,8 @@ class DashboardController extends AbstractController
             return $this->redirect('/login');
         }
 
-        $user = $this->getAuth()->getUser($this->session);
-
         return $this->render('user/profile.ogan', [
-            'title' => 'Mon Profil',
-            'user' => $user
+            'title' => 'Mon Profil'
         ]);
     }
 

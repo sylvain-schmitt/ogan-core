@@ -68,7 +68,7 @@ class DashboardTemplateGenerator extends AbstractGenerator
             <div class="md:pl-64 flex flex-col min-h-screen transition-all duration-300">
                 
                 <!-- Navbar -->
-                {{ component('dashboard/navbar', ['user' => user]) }}
+                {{ component('dashboard/navbar') }}
 
                 <!-- Main Content Area -->
                 <main class="flex-1 p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900">

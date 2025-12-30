@@ -67,25 +67,25 @@ class LoginFormType extends AbstractType
     {
         $builder
             ->add('email', EmailType::class, [
-                'label' => 'Email',
+                'label' => 'Adresse email',
                 'constraints' => [
-                    new Required('Email is required.'),
-                    new Email('Please enter a valid email address.'),
+                    new Required('L\'email est requis.'),
+                    new Email('Veuillez entrer une adresse email valide.'),
                 ],
                 'attr' => [
                     'class' => 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-                    'placeholder' => 'your@email.com',
+                    'placeholder' => 'votre@email.com',
                     'autofocus' => true
                 ]
             ])
             ->add('password', PasswordType::class, [
-                'label' => 'Password',
+                'label' => 'Mot de passe',
                 'constraints' => [
-                    new Required('Password is required.'),
+                    new Required('Le mot de passe est requis.'),
                 ],
                 'attr' => [
                     'class' => 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-                    'placeholder' => 'Your password'
+                    'placeholder' => 'Votre mot de passe'
                 ]
             ])
             ->add('remember_me', CheckboxType::class, [
@@ -93,7 +93,7 @@ class LoginFormType extends AbstractType
                 'constraints' => [],
             ])
             ->add('submit', SubmitType::class, [
-                'label' => 'Sign In',
+                'label' => 'Se connecter',
                 'attr' => ['class' => 'w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors']
             ]);
     }
@@ -128,54 +128,54 @@ class RegisterFormType extends AbstractType
     {
         $builder
             ->add('name', TextType::class, [
-                'label' => 'Full Name',
+                'label' => 'Nom complet',
                 'constraints' => [
-                    new Required('Name is required.'),
-                    new MinLength(2, 'Name must be at least 2 characters.'),
-                    new MaxLength(100, 'Name must not exceed 100 characters.'),
+                    new Required('Le nom est requis.'),
+                    new MinLength(2, 'Le nom doit contenir au moins 2 caractères.'),
+                    new MaxLength(100, 'Le nom ne doit pas dépasser 100 caractères.'),
                 ],
                 'attr' => [
                     'class' => 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-                    'placeholder' => 'Your full name',
+                    'placeholder' => 'Votre nom complet',
                     'autofocus' => true
                 ]
             ])
             ->add('email', EmailType::class, [
-                'label' => 'Email',
+                'label' => 'Adresse email',
                 'constraints' => [
-                    new Required('Email is required.'),
-                    new Email('Please enter a valid email address.'),
-                    new UniqueEntity(User::class, 'email', 'This email is already used.'),
+                    new Required('L\'email est requis.'),
+                    new Email('Veuillez entrer une adresse email valide.'),
+                    new UniqueEntity(User::class, 'email', 'Cet email est déjà utilisé.'),
                 ],
                 'attr' => [
                     'class' => 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-                    'placeholder' => 'your@email.com'
+                    'placeholder' => 'votre@email.com'
                 ]
             ])
             ->add('password', PasswordType::class, [
-                'label' => 'Password',
+                'label' => 'Mot de passe',
                 'constraints' => [
-                    new Required('Password is required.'),
-                    new MinLength(8, 'Password must be at least 8 characters.'),
+                    new Required('Le mot de passe est requis.'),
+                    new MinLength(8, 'Le mot de passe doit contenir au moins 8 caractères.'),
                 ],
                 'attr' => [
                     'class' => 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-                    'placeholder' => 'Minimum 8 characters'
+                    'placeholder' => 'Minimum 8 caractères'
                 ]
             ])
             ->add('password_confirm', PasswordType::class, [
-                'label' => 'Confirm Password',
+                'label' => 'Confirmer le mot de passe',
                 'constraints' => [
-                    new Required('Please confirm your password.'),
-                    new EqualTo('password', 'Passwords do not match.'),
+                    new Required('Veuillez confirmer votre mot de passe.'),
+                    new EqualTo('password', 'Les mots de passe ne correspondent pas.'),
                 ],
                 'attr' => [
                     'class' => 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
-                    'placeholder' => 'Retype your password'
+                    'placeholder' => 'Retapez votre mot de passe'
                 ]
             ])
             ->add('submit', SubmitType::class, [
-                'label' => 'Create Account',
+                'label' => 'Créer un compte',
                 'attr' => ['class' => 'w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors']
             ]);
     }
