@@ -170,7 +170,7 @@ class ErrorHandler
     /**
      * Affiche la page d'erreur complète pour les requêtes HTMX (mode debug)
      * 
-     * Capture le rendu de la page debug et l'envoie avec un script JavaScript
+     * Génère la page debug et l'envoie avec un script JavaScript
      * qui remplace entièrement le document actuel. Cela permet de voir
      * l'erreur complète même quand HTMX intercepte la requête.
      */
@@ -181,10 +181,8 @@ class ErrorHandler
             ob_end_clean();
         }
 
-        // Capturer le rendu de la page debug
-        ob_start();
-        $this->renderDebugPage($exception);
-        $debugPageHtml = ob_get_clean();
+        // Générer le contenu de la page debug
+        $debugPageHtml = $this->generateDebugPageHtml($exception);
 
         // Échapper le HTML pour JavaScript
         $escapedHtml = json_encode($debugPageHtml);
@@ -199,6 +197,235 @@ class ErrorHandler
     document.close();
 })();
 </script>
+HTML;
+    }
+
+    /**
+     * Génère le HTML de la page debug (sans l'afficher)
+     */
+    private function generateDebugPageHtml(Throwable $exception): string
+    {
+        $class = get_class($exception);
+        $message = htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8');
+        $file = $exception->getFile();
+        $line = $exception->getLine();
+        $shortClass = substr(strrchr($class, '\\'), 1) ?: $class;
+        $codeExcerpt = $this->getCodeExcerpt($file, $line);
+        $enhancedTrace = $this->getEnhancedStackTrace($exception);
+        $contextVars = $this->getContextVariables();
+        $fileHtml = htmlspecialchars($file, ENT_QUOTES, 'UTF-8');
+        $classHtml = htmlspecialchars($class, ENT_QUOTES, 'UTF-8');
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erreur - {$shortClass}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'JetBrains Mono', 'Fira Code', Monaco, monospace; 
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d3f 100%);
+            color: #cdd6f4;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        .container { 
+            width: 95%; 
+            max-width: 1600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            box-sizing: border-box;
+        }
+        .header {
+            background: linear-gradient(135deg, #f38ba8 0%, #fab387 100%);
+            color: #1e1e2e;
+            padding: 24px 32px;
+            border-radius: 12px 12px 0 0;
+            margin-bottom: 0;
+        }
+        .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .header .exception-class { 
+            background: rgba(0,0,0,0.2); 
+            padding: 4px 12px; 
+            border-radius: 6px; 
+            font-size: 14px;
+        }
+        .message-box {
+            background: #313244;
+            border-left: 4px solid #f9e2af;
+            padding: 20px 24px;
+            font-size: 16px;
+            word-break: break-word;
+        }
+        .content { background: #1e1e2e; padding: 24px; border-radius: 0 0 12px 12px; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .info-item { background: #313244; padding: 12px 16px; border-radius: 8px; }
+        .info-label { color: #a6adc8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; }
+        .info-value { color: #89b4fa; font-size: 13px; word-break: break-all; }
+        .section { margin-bottom: 24px; }
+        .section-title { 
+            color: #89b4fa; 
+            font-size: 14px; 
+            font-weight: 600; 
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .code-excerpt { 
+            background: #11111b; 
+            border-radius: 8px; 
+            overflow: hidden;
+            font-size: 12px;
+        }
+        .code-line { 
+            display: flex; 
+            padding: 2px 0;
+            border-left: 3px solid transparent;
+        }
+        .code-line.error-line { 
+            background: rgba(243, 139, 168, 0.15); 
+            border-left-color: #f38ba8;
+        }
+        .line-marker { width: 24px; text-align: center; color: #f38ba8; }
+        .line-num { 
+            width: 48px; 
+            text-align: right; 
+            padding-right: 16px; 
+            color: #6c7086;
+            user-select: none;
+        }
+        .line-code { flex: 1; white-space: pre; overflow-x: auto; }
+        .trace-frame { 
+            background: #313244; 
+            margin-bottom: 4px; 
+            border-radius: 6px; 
+            overflow: hidden;
+        }
+        .trace-header { 
+            display: flex; 
+            gap: 12px; 
+            padding: 10px 14px; 
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .trace-header:hover { background: #45475a; }
+        .trace-num { color: #f38ba8; font-weight: bold; min-width: 30px; }
+        .trace-call { color: #a6e3a1; flex: 1; }
+        .trace-location { color: #89b4fa; font-size: 12px; }
+        .trace-code { padding: 0 14px 14px; }
+        .trace-code .code-excerpt { font-size: 11px; }
+        .hidden { display: none; }
+        .context-section { margin-bottom: 8px; }
+        .context-section summary {
+            background: #313244;
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .context-section summary:hover { background: #45475a; }
+        .context-section[open] summary { border-radius: 6px 6px 0 0; }
+        .var-table { 
+            width: 100%; 
+            background: #11111b; 
+            border-radius: 0 0 6px 6px;
+            font-size: 12px;
+        }
+        .var-table td { padding: 8px 12px; border-bottom: 1px solid #313244; }
+        .var-key { color: #89dceb; width: 200px; }
+        .var-value { color: #f9e2af; word-break: break-all; }
+        .var-value pre { margin: 0; font-size: 11px; max-height: 150px; overflow: auto; }
+        .bool { color: #fab387; }
+        .null { color: #6c7086; font-style: italic; }
+        .empty { color: #6c7086; font-style: italic; display: block; padding: 12px; }
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            color: #6c7086;
+            font-size: 12px;
+        }
+        .copy-btn {
+            background: #45475a;
+            color: #cdd6f4;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+        }
+        .copy-btn:hover { background: #585b70; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Une erreur s'est produite</h1>
+            <span class="exception-class">{$shortClass}</span>
+        </div>
+        
+        <div class="message-box">{$message}</div>
+        
+        <div class="content">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Fichier</div>
+                    <div class="info-value">{$fileHtml}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ligne</div>
+                    <div class="info-value">{$line}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Classe</div>
+                    <div class="info-value">{$classHtml}</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">📄 Code Source</div>
+                {$codeExcerpt}
+            </div>
+            
+            <div class="section">
+                <div class="section-title">📚 Stack Trace (cliquez pour voir le code)</div>
+                {$enhancedTrace}
+            </div>
+            
+            <div class="section">
+                <div class="section-title">🔍 Variables de Contexte</div>
+                {$contextVars}
+            </div>
+        </div>
+        
+        <div class="footer">
+            <span>Framework Ogan 🐕 | Mode DEBUG</span>
+            <button class="copy-btn" onclick="copyError()">📋 Copier l'erreur</button>
+        </div>
+    </div>
+    
+    <script>
+    function copyError() {
+        var text = "{$shortClass}: " + document.querySelector('.message-box').textContent + "\\n";
+        text += "File: {$fileHtml}:{$line}";
+        navigator.clipboard.writeText(text).then(function() {
+            alert('Erreur copiée !');
+        });
+    }
+    </script>
+</body>
+</html>
 HTML;
     }
 
