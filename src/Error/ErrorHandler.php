@@ -81,10 +81,18 @@ class ErrorHandler
         http_response_code($statusCode);
 
         // ═══════════════════════════════════════════════════════════════
-        // HTMX SUPPORT - Renvoie un fragment HTML au lieu d'une page complète
+        // HTMX SUPPORT
         // ═══════════════════════════════════════════════════════════════
+        // En mode DEBUG : afficher la page d'erreur complète (utile pour déboguer)
+        // En mode PROD : afficher un toast discret
         if ($this->isHtmxRequest()) {
-            $this->renderHtmxError($exception, $statusCode);
+            if ($this->debug) {
+                // Mode debug : renvoyer la page complète avec script pour remplacer le document
+                $this->renderHtmxDebugPage($exception);
+            } else {
+                // Mode production : renvoyer un toast discret
+                $this->renderHtmxError($exception, $statusCode);
+            }
             exit(1);
         }
 
@@ -157,6 +165,41 @@ class ErrorHandler
 
         // Par défaut : 500 Internal Server Error
         return 500;
+    }
+
+    /**
+     * Affiche la page d'erreur complète pour les requêtes HTMX (mode debug)
+     * 
+     * Capture le rendu de la page debug et l'envoie avec un script JavaScript
+     * qui remplace entièrement le document actuel. Cela permet de voir
+     * l'erreur complète même quand HTMX intercepte la requête.
+     */
+    private function renderHtmxDebugPage(Throwable $exception): void
+    {
+        // Nettoyer les buffers de sortie
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        // Capturer le rendu de la page debug
+        ob_start();
+        $this->renderDebugPage($exception);
+        $debugPageHtml = ob_get_clean();
+
+        // Échapper le HTML pour JavaScript
+        $escapedHtml = json_encode($debugPageHtml);
+
+        // Envoyer un script qui remplace tout le document
+        echo <<<HTML
+<script>
+(function() {
+    var errorHtml = {$escapedHtml};
+    document.open();
+    document.write(errorHtml);
+    document.close();
+})();
+</script>
+HTML;
     }
 
     /**
