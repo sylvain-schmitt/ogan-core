@@ -59,7 +59,7 @@ class VariableTransformer
 
         while ($iteration < $maxIterations) {
             $newExpression = preg_replace_callback(
-                '/(?<!\$)(?<!##)\b([a-zA-Z_][a-zA-Z0-9_]*)((?:\s*(?:->|\[))[^\s,)\]]*?)(?=\s|$|\)|,|;|:|\]|=>)/',
+                '/(?<!\$)(?<!##)(?<!\\\\)\b([a-zA-Z_][a-zA-Z0-9_]*)((?:\s*(?:->|\[))[^\s,)\]]*?)(?=\s|$|\)|,|;|:(?!:)|\]|=>)/',
                 function ($matches) use ($keywordChecker) {
                     $var = $matches[1];
                     $rest = $matches[2];
@@ -168,7 +168,7 @@ class VariableTransformer
 
                     // Transformer les variables dans l'index (sauf dans les chaînes)
                     $transformedIndex = preg_replace_callback(
-                        '/(?<!\$)(?<!##)\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s|$|\)|,|;|:|\?|&|\||\[|=>|==|!=|<=|>=|<|>)/',
+                        '/(?<!\$)(?<!##)(?<!\\\\)\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s|$|\)|,|;|:(?!:)|\?|&|\||\[|=>|==|!=|<=|>=|<|>)/',
                         function ($varMatches) use ($keywordChecker) {
                             $var = $varMatches[1];
 
@@ -215,7 +215,7 @@ class VariableTransformer
         $iteration = 0;
         while ($iteration < $maxIterations) {
             $newExpression = preg_replace_callback(
-                '/(?<!\$)(?<!##)\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s|$|\)|,|;|\[|\]|=>|==|!=|<=|>=|<|>|&&|\|\||and|or|\?|:|&|\|)/',
+                '/(?<!\$)(?<!##)(?<!\\\\)\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\s|$|\)|,|;|\[|\]|=>|==|!=|<=|>=|<|>|&&|\|\||and|or|\?|:(?!:)|&|\|)/',
                 function ($matches) use ($keywordChecker, $expression) {
                     $var = $matches[1];
                     $fullMatch = $matches[0];
