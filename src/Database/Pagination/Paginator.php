@@ -53,7 +53,7 @@ class Paginator implements IteratorAggregate, Countable
         $this->total = max(0, $total);
         $this->perPage = max(1, $perPage);
         $this->currentPage = max(1, $currentPage);
-        
+
         // Détecte automatiquement le path depuis la requête courante
         $this->path = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
     }
@@ -178,11 +178,11 @@ class Paginator implements IteratorAggregate, Countable
     public function url(int $page): string
     {
         $page = max(1, $page);
-        
+
         // Récupère les paramètres GET existants
         $query = $_GET;
         $query[$this->pageName] = $page;
-        
+
         return $this->path . '?' . http_build_query($query);
     }
 
@@ -246,15 +246,26 @@ class Paginator implements IteratorAggregate, Countable
             return '';
         }
 
-        $hxAttrs = sprintf('hx-target="%s" hx-swap="%s" hx-push-url="true"', 
-            htmlspecialchars($target), 
+        // Tenter d'utiliser le template HTMX personnalisé s'il existe
+        try {
+            return $this->renderTemplate('htmx', [
+                'target' => $target,
+                'swap' => $swap
+            ]);
+        } catch (\Exception $e) {
+            // Fallback: rendu manuel si le template n'existe pas ou erreur
+        }
+
+        $hxAttrs = sprintf(
+            'hx-target="%s" hx-swap="%s" hx-push-url="true"',
+            htmlspecialchars($target),
             htmlspecialchars($swap)
         );
 
         $html = '<nav class="flex items-center justify-between">';
-        
+
         // Info résumé
-        $html .= '<div class="hidden sm:block text-sm text-gray-500">';
+        $html .= '<div class="hidden sm:block text-sm text-gray-500 dark:text-gray-400">';
         $html .= sprintf(
             'Affichage de <span class="font-medium">%d</span> à <span class="font-medium">%d</span> sur <span class="font-medium">%d</span> résultats',
             $this->firstItem() ?? 0,
@@ -265,17 +276,17 @@ class Paginator implements IteratorAggregate, Countable
 
         // Boutons de pagination
         $html .= '<div class="flex gap-1">';
-        
+
         // Bouton Précédent
         if ($this->hasPreviousPages()) {
             $html .= sprintf(
-                '<a href="%s" hx-get="%s" %s class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">← Précédent</a>',
+                '<a href="%s" hx-get="%s" %s class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">← Précédent</a>',
                 htmlspecialchars($this->previousPageUrl()),
                 htmlspecialchars($this->previousPageUrl()),
                 $hxAttrs
             );
         } else {
-            $html .= '<span class="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed">← Précédent</span>';
+            $html .= '<span class="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-600">← Précédent</span>';
         }
 
         // Numéros de pages
@@ -284,13 +295,13 @@ class Paginator implements IteratorAggregate, Countable
         // Bouton Suivant
         if ($this->hasMorePages()) {
             $html .= sprintf(
-                '<a href="%s" hx-get="%s" %s class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">Suivant →</a>',
+                '<a href="%s" hx-get="%s" %s class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">Suivant →</a>',
                 htmlspecialchars($this->nextPageUrl()),
                 htmlspecialchars($this->nextPageUrl()),
                 $hxAttrs
             );
         } else {
-            $html .= '<span class="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed">Suivant →</span>';
+            $html .= '<span class="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-600">Suivant →</span>';
         }
 
         $html .= '</div>';
@@ -305,9 +316,9 @@ class Paginator implements IteratorAggregate, Countable
     protected function renderDefaultTemplate(): string
     {
         $html = '<nav class="flex items-center justify-between">';
-        
+
         // Info résumé
-        $html .= '<div class="hidden sm:block text-sm text-gray-500">';
+        $html .= '<div class="hidden sm:block text-sm text-gray-500 dark:text-gray-400">';
         $html .= sprintf(
             'Affichage de <span class="font-medium">%d</span> à <span class="font-medium">%d</span> sur <span class="font-medium">%d</span> résultats',
             $this->firstItem() ?? 0,
@@ -318,15 +329,15 @@ class Paginator implements IteratorAggregate, Countable
 
         // Boutons de pagination
         $html .= '<div class="flex gap-1">';
-        
+
         // Bouton Précédent
         if ($this->hasPreviousPages()) {
             $html .= sprintf(
-                '<a href="%s" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">← Précédent</a>',
+                '<a href="%s" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">← Précédent</a>',
                 htmlspecialchars($this->previousPageUrl())
             );
         } else {
-            $html .= '<span class="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed">← Précédent</span>';
+            $html .= '<span class="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-600">← Précédent</span>';
         }
 
         // Numéros de pages (affiche max 7 pages)
@@ -335,11 +346,11 @@ class Paginator implements IteratorAggregate, Countable
         // Bouton Suivant
         if ($this->hasMorePages()) {
             $html .= sprintf(
-                '<a href="%s" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Suivant →</a>',
+                '<a href="%s" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">Suivant →</a>',
                 htmlspecialchars($this->nextPageUrl())
             );
         } else {
-            $html .= '<span class="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed">Suivant →</span>';
+            $html .= '<span class="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-600">Suivant →</span>';
         }
 
         $html .= '</div>';
@@ -351,12 +362,35 @@ class Paginator implements IteratorAggregate, Countable
     /**
      * Rendu via un fichier template externe
      */
-    protected function renderTemplate(string $template): string
+    protected function renderTemplate(string $template, array $data = []): string
     {
-        $projectRoot = dirname(__DIR__, 3);
-        $templatesDir = $projectRoot . '/templates';
+        // Recherche de la racine du projet (pour trouver le dossier templates)
+        // Cas 1: Dev local (ogan-core/src/...) -> dirname(__DIR__, 3) remonte à ogan-core, ce qui n'est pas bon.
+        // Cas 2: Vendor (project/vendor/ogan/core/src/...) -> dirname(__DIR__, 7) remonte à project.
+
+        // Tentative de détection intelligente
+        $candidates = [
+            dirname(__DIR__, 7) . '/templates', // Structure vendor
+            dirname(__DIR__, 5) . '/templates', // Structure dev potentielle
+            $_SERVER['DOCUMENT_ROOT'] . '/../templates', // Structure webroot
+            getcwd() . '/templates', // Structure CLI
+        ];
+
+        $templatesDir = null;
+        foreach ($candidates as $dir) {
+            if (is_dir($dir)) {
+                $templatesDir = $dir;
+                break;
+            }
+        }
+
+        if (!$templatesDir) {
+            // Fallback désespéré (dev ogan-core local)
+            $templatesDir = dirname(__DIR__, 3) . '/templates';
+        }
+
         $paginationDir = $templatesDir . '/pagination/';
-        
+
         // Si c'est un nom court, ajouter le chemin et l'extension
         if (!str_contains($template, '/') && !str_ends_with($template, '.ogan')) {
             $templatePath = $paginationDir . $template . '.ogan';
@@ -367,13 +401,18 @@ class Paginator implements IteratorAggregate, Countable
         }
 
         if (!file_exists($templatePath)) {
-            // Fallback au template par défaut
-            return $this->renderDefaultTemplate();
+            // Si c'est un appel explicite linksHtmx et que le template n'existe pas,
+            // on lève une exception pour que le catch du dessus active le fallback.
+            throw new \RuntimeException("Template pagination not found: $templatePath");
         }
 
         // Créer une instance de View et rendre le template avec chemin relatif
         $view = new \Ogan\View\View($templatesDir, true);
-        return $view->render($relativePath, ['paginator' => $this]);
+
+        // Fusionner les données avec le paginator
+        $viewData = array_merge(['paginator' => $this], $data);
+
+        return $view->render($relativePath, $viewData);
     }
 
     /**
@@ -383,7 +422,7 @@ class Paginator implements IteratorAggregate, Countable
     {
         $html = '';
         $lastPage = $this->lastPage();
-        
+
         // Calcule la plage de pages à afficher
         $start = max(1, $this->currentPage - 2);
         $end = min($lastPage, $this->currentPage + 2);
@@ -429,8 +468,9 @@ class Paginator implements IteratorAggregate, Countable
      */
     public function linksPageNumbersHtmx(string $target = '#content', string $swap = 'innerHTML'): string
     {
-        $hxAttrs = sprintf('hx-target="%s" hx-swap="%s" hx-push-url="true"', 
-            htmlspecialchars($target), 
+        $hxAttrs = sprintf(
+            'hx-target="%s" hx-swap="%s" hx-push-url="true"',
+            htmlspecialchars($target),
             htmlspecialchars($swap)
         );
         return $this->renderPageNumbersHtmx($hxAttrs);
@@ -443,7 +483,7 @@ class Paginator implements IteratorAggregate, Countable
     {
         $html = '';
         $lastPage = $this->lastPage();
-        
+
         // Calcule la plage de pages à afficher
         $start = max(1, $this->currentPage - 2);
         $end = min($lastPage, $this->currentPage + 2);
@@ -488,13 +528,13 @@ class Paginator implements IteratorAggregate, Countable
     {
         if ($page === $this->currentPage) {
             return sprintf(
-                '<span class="px-3 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-md">%d</span>',
+                '<span class="px-3 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-md dark:bg-indigo-500 dark:border-indigo-500">%d</span>',
                 $page
             );
         }
 
         return sprintf(
-            '<a href="%s" hx-get="%s" %s class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">%d</a>',
+            '<a href="%s" hx-get="%s" %s class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">%d</a>',
             htmlspecialchars($this->url($page)),
             htmlspecialchars($this->url($page)),
             $hxAttrs,
@@ -509,13 +549,13 @@ class Paginator implements IteratorAggregate, Countable
     {
         if ($page === $this->currentPage) {
             return sprintf(
-                '<span class="px-3 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-md">%d</span>',
+                '<span class="px-3 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-md dark:bg-indigo-500 dark:border-indigo-500">%d</span>',
                 $page
             );
         }
 
         return sprintf(
-            '<a href="%s" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">%d</a>',
+            '<a href="%s" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">%d</a>',
             htmlspecialchars($this->url($page)),
             $page
         );
