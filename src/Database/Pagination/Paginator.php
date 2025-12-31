@@ -122,6 +122,14 @@ class Paginator implements IteratorAggregate, Countable
         return range(1, $this->lastPage());
     }
 
+    /**
+     * Vérifie si la pagination a plusieurs pages (utile pour les templates)
+     */
+    public function hasPages(): bool
+    {
+        return $this->lastPage() > 1;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // NAVIGATION
     // ═══════════════════════════════════════════════════════════════════════
