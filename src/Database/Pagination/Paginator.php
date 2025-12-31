@@ -446,25 +446,25 @@ class Paginator implements IteratorAggregate, Countable
         }
 
         // Helper pour créer un élément de page (retourne un objet pour compatibilité template)
-        $makePage = function ($num, bool $isEllipsis = false) {
+        // Utilise 'type' au lieu de booléens car le compilateur traite page.isXxx comme méthode
+        $makePage = function ($num, string $type = 'normal') {
             return (object)[
                 'number' => $num,
-                'url' => $isEllipsis ? '' : $this->url($num),
-                'isEllipsis' => $isEllipsis,
-                'isCurrent' => !$isEllipsis && $num === $this->currentPage
+                'url' => $type === 'ellipsis' ? '' : $this->url($num),
+                'type' => $type
             ];
         };
 
         if ($start > 1) {
-            $pages[] = $makePage(1);
-            if ($start > 2) $pages[] = $makePage('...', true);
+            $pages[] = $makePage(1, $this->currentPage === 1 ? 'current' : 'normal');
+            if ($start > 2) $pages[] = $makePage('...', 'ellipsis');
         }
         for ($i = $start; $i <= $end; $i++) {
-            $pages[] = $makePage($i);
+            $pages[] = $makePage($i, $i === $this->currentPage ? 'current' : 'normal');
         }
         if ($end < $lastPage) {
-            if ($end < $lastPage - 1) $pages[] = $makePage('...', true);
-            $pages[] = $makePage($lastPage);
+            if ($end < $lastPage - 1) $pages[] = $makePage('...', 'ellipsis');
+            $pages[] = $makePage($lastPage, $this->currentPage === $lastPage ? 'current' : 'normal');
         }
 
         // Fusionner les données avec le paginator
