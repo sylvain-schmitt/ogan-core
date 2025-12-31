@@ -110,6 +110,18 @@ class Paginator implements IteratorAggregate, Countable
         return count($this->items);
     }
 
+    /**
+     * Retourne une plage de pages simple (1..N) pour l'itération dans les templates
+     * Permet de contourner les limitations du compilateur sur les ranges (1..N)
+     */
+    public function getSimpleRange(): array
+    {
+        if ($this->lastPage() < 1) {
+            return [];
+        }
+        return range(1, $this->lastPage());
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // NAVIGATION
     // ═══════════════════════════════════════════════════════════════════════
