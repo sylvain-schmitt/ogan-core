@@ -121,7 +121,7 @@ class WysiwygType implements FieldTypeInterface
     }
 
     /**
-     * Génère le script TinyMCE avec support HTMX
+     * Génère le script TinyMCE avec support HTMX et Dark Mode
      */
     private function getTinyMceScript(string $name, string $toolbar, int $height): string
     {
@@ -131,36 +131,79 @@ class WysiwygType implements FieldTypeInterface
         return <<<HTML
 <script>
 (function() {
-    // Configuration TinyMCE pour ce champ
-    var editorConfig = {
-        selector: '#{$name}',
-        height: {$height},
-        menubar: false,
-        plugins: 'lists link image code table wordcount',
-        toolbar: '{$toolbarConfig}',
-        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; }',
-        branding: false,
-        promotion: false,
-        license_key: 'gpl',
-        setup: function(editor) {
-            // Synchroniser le contenu avant soumission du formulaire
-            editor.on('change', function() {
-                editor.save();
-            });
-        }
-    };
+    // Détecter le mode sombre initial
+    function isDarkMode() {
+        return document.documentElement.classList.contains('dark');
+    }
+
+    // Configuration de base
+    function getEditorConfig() {
+        var isDark = isDarkMode();
+        return {
+            selector: '#{$name}',
+            height: {$height},
+            menubar: false,
+            plugins: 'lists link image code table wordcount',
+            toolbar: '{$toolbarConfig}',
+            // Skin et CSS selon le thème
+            skin: isDark ? 'oxide-dark' : 'oxide',
+            content_css: isDark ? 'dark' : 'default',
+            // Injecter le CSS de l'application pour que le contenu ressemble au site
+            content_style: `
+                @import url('/assets/css/app.css');
+                body { 
+                    font-family: 'Nunito', sans-serif; 
+                    font-size: 16px; 
+                    line-height: 1.6;
+                    padding: 1rem;
+                }
+            `,
+            branding: false,
+            promotion: false,
+            license_key: 'gpl',
+            setup: function(editor) {
+                // Synchroniser le contenu avant soumission du formulaire
+                editor.on('change', function() {
+                    editor.save();
+                });
+            }
+        };
+    }
+
+    // Instance de l'éditeur
+    var currentEditor = null;
 
     // Fonction d'initialisation
     function initEditor() {
         // Supprimer l'ancien éditeur s'il existe
-        if (typeof tinymce !== 'undefined' && tinymce.get('{$name}')) {
-            tinymce.get('{$name}').remove();
-        }
-        // Initialiser le nouvel éditeur
         if (typeof tinymce !== 'undefined') {
-            tinymce.init(editorConfig);
+            if (tinymce.get('{$name}')) {
+                tinymce.get('{$name}').remove();
+            }
+            
+            // Initialiser avec la config courante (skin clair/sombre)
+            tinymce.init(getEditorConfig()).then(function(editors) {
+                currentEditor = editors[0];
+            });
         }
     }
+
+    // Observer les changements de classe sur <html> pour le dark mode
+    var themeObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'class') {
+                // Si le thème a changé, on recharge l'éditeur
+                // On attend un peu que le DOM soit à jour
+                setTimeout(initEditor, 100);
+            }
+        });
+    });
+
+    // Démarrer l'observation du thème
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class']
+    });
 
     // Charger TinyMCE si pas encore chargé
     if (typeof tinymce === 'undefined') {
@@ -184,6 +227,13 @@ class WysiwygType implements FieldTypeInterface
             if (editorElement && typeof tinymce !== 'undefined') {
                 // Petit délai pour s'assurer que le DOM est prêt
                 setTimeout(initEditor, 50);
+            }
+        });
+        
+        // Nettoyage lors de la suppression de l'élément (pour éviter les fuites mémoire)
+        document.body.addEventListener('htmx:beforeSwap', function(evt) {
+             if (tinymce.get('{$name}')) {
+                tinymce.get('{$name}').remove();
             }
         });
     }
