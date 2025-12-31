@@ -155,11 +155,30 @@ abstract class Model
     protected function syncAttributesFromProperties(): void
     {
         $reflection = new \ReflectionClass($this);
-        // Inclure toutes les visibilités (private, protected, public) pour les modèles
+        // Inclure private et protected pour les modèles utilisateur
         $properties = $reflection->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED);
+
+        // Propriétés internes du Model à ignorer (ne pas persister en DB)
+        $internalProperties = ['attributes', 'exists', 'hidden', 'visible', 'table', 'primaryKey'];
 
         foreach ($properties as $property) {
             $name = $property->getName();
+
+            // Ignorer les propriétés internes du Model de base
+            if (in_array($name, $internalProperties, true)) {
+                continue;
+            }
+
+            // Ignorer les propriétés statiques
+            if ($property->isStatic()) {
+                continue;
+            }
+
+            // Ignorer les propriétés définies dans la classe Model de base (sauf si overridées)
+            if ($property->getDeclaringClass()->getName() === self::class) {
+                continue;
+            }
+
             $getter = 'get' . ucfirst($name);
             $isGetter = 'is' . ucfirst($name);
 
@@ -189,6 +208,7 @@ abstract class Model
             }
         }
     }
+
 
     /**
      * ═══════════════════════════════════════════════════════════════════
