@@ -430,8 +430,8 @@ class Paginator implements IteratorAggregate, Countable
         $view = new \Ogan\View\View($templatesDir, true);
 
         // Générer le tableau des pages intelligentes
-        // Cela permet de contourner les limitations du compilateur de template (qui ne gère pas les ranges 1..N)
-        // et de fournir une pagination "intelligente" (avec ...)
+        // Chaque élément contient: number, url, isEllipsis, isCurrent
+        // Cela permet de contourner les limitations du compilateur de template
         $pages = [];
         $lastPage = $this->lastPage();
         $start = max(1, $this->currentPage - 2);
@@ -445,16 +445,26 @@ class Paginator implements IteratorAggregate, Countable
             }
         }
 
+        // Helper pour créer un élément de page
+        $makePage = function ($num, bool $isEllipsis = false) {
+            return [
+                'number' => $num,
+                'url' => $isEllipsis ? '' : $this->url($num),
+                'isEllipsis' => $isEllipsis,
+                'isCurrent' => !$isEllipsis && $num === $this->currentPage
+            ];
+        };
+
         if ($start > 1) {
-            $pages[] = 1;
-            if ($start > 2) $pages[] = '...';
+            $pages[] = $makePage(1);
+            if ($start > 2) $pages[] = $makePage('...', true);
         }
         for ($i = $start; $i <= $end; $i++) {
-            $pages[] = $i;
+            $pages[] = $makePage($i);
         }
         if ($end < $lastPage) {
-            if ($end < $lastPage - 1) $pages[] = '...';
-            $pages[] = $lastPage;
+            if ($end < $lastPage - 1) $pages[] = $makePage('...', true);
+            $pages[] = $makePage($lastPage);
         }
 
         // Fusionner les données avec le paginator
