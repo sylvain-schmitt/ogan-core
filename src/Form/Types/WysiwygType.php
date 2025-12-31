@@ -121,7 +121,7 @@ class WysiwygType implements FieldTypeInterface
     }
 
     /**
-     * Génère le script TinyMCE avec support HTMX et Dark Mode
+     * Génère le script TinyMCE avec support HTMX, Dark Mode et Custom UI
      */
     private function getTinyMceScript(string $name, string $toolbar, int $height): string
     {
@@ -131,12 +131,99 @@ class WysiwygType implements FieldTypeInterface
         return <<<HTML
 <script>
 (function() {
-    // Détecter le mode sombre initial
+    // 1. Détecter le mode sombre
     function isDarkMode() {
         return document.documentElement.classList.contains('dark');
     }
 
-    // Configuration de base
+    // 2. Injecter les SURCHARGES CSS DYNAMIQUES pour l'UI de TinyMCE
+    // Cette fonction récupère les couleurs réelles du thème (bg-card, border-default...)
+    // en créant un élément invisible, pour que TinyMCE s'adapte à N'IMPORTE QUEL thème Ogan.
+    function injectTinyMceOverrides() {
+        const styleId = 'tinymce-overrides';
+        let style = document.getElementById(styleId);
+        
+        if (!style) {
+            style = document.createElement('style');
+            style.id = styleId;
+            document.head.appendChild(style);
+        }
+
+        // Créer un élément témoin pour lire les couleurs calculées par le navigateur
+        const dummy = document.createElement('div');
+        // On lui donne les classes du framework dont on veut récupérer les couleurs
+        // bg-card : fond des panneaux
+        // border-default : couleur des bordures
+        // text-muted : couleur du texte secondaire
+        // text-foreground : couleur du texte principal
+        dummy.className = 'bg-card border-default text-muted text-foreground hidden';
+        dummy.style.display = 'none'; 
+        document.body.appendChild(dummy);
+        
+        const styles = window.getComputedStyle(dummy);
+        
+        // Récupération des couleurs calculées (rgb ou hex)
+        const bgCard = styles.backgroundColor;
+        const borderColor = styles.borderColor;
+        const textMuted = styles.color; 
+        
+        // Pour le hover, on peut essayer d'assombrir ou éclaircir, ou juste utiliser une valeur sémantique si dispo.
+        // Ici on va utiliser une astuce de transparence pour le hover
+        
+        document.body.removeChild(dummy);
+
+        // On n'applique ces surcharges QUE si on est en mode dark 
+        // (car le mode light de TinyMCE 'oxide' est généralement très bien et standard)
+        // Mais l'utilisateur peut vouloir que ça matche son thème light aussi.
+        // Pour l'instant on cible html.dark pour répondre à la demande spécifique.
+        
+        style.textContent = `
+            /* Mode Sombre Dynamique */
+            html.dark .tox-tinymce {
+                border-color: \${borderColor} !important;
+            }
+            html.dark .tox-editor-header,
+            html.dark .tox-toolbar__primary,
+            html.dark .tox-toolbar-overlord,
+            html.dark .tox-editor-container,
+            html.dark .tox-statusbar {
+                background-color: \${bgCard} !important;
+                border-color: \${borderColor} !important;
+            }
+            /* Boutons de la toolbar */
+            html.dark .tox-tbtn {
+                color: \${textMuted} !important;
+            }
+            html.dark .tox-tbtn svg {
+                fill: \${textMuted} !important;
+            }
+            html.dark .tox-tbtn:hover {
+                background-color: rgba(255, 255, 255, 0.1) !important;
+                color: #fff !important;
+            }
+            html.dark .tox-tbtn:hover svg {
+                fill: #fff !important;
+            }
+            
+            /* Zone d'édition (iframe container) */
+            html.dark .tox-edit-area__iframe {
+                background-color: transparent !important; /* Laisser voir le fond du body de l'iframe */
+            }
+            
+            /* Masquer la promo 'Upgrade' */
+            html.dark .tox-promotion { display: none !important; }
+            
+            /* Séparateurs */
+            html.dark .tox-toolbar__group {
+                border-color: \${borderColor} !important;
+            }
+        `;
+    }
+    
+    // Injecter les styles tout de suite
+    injectTinyMceOverrides();
+
+    // 3. Configuration de l'éditeur
     function getEditorConfig() {
         var isDark = isDarkMode();
         return {
@@ -145,10 +232,18 @@ class WysiwygType implements FieldTypeInterface
             menubar: false,
             plugins: 'lists link image code table wordcount',
             toolbar: '{$toolbarConfig}',
-            // Skin et CSS selon le thème
+            
+            // On utilise le skin 'oxide-dark' si sombre, mais nos surcharges CSS (au-dessus) 
+            // vont affiner les couleurs pour coller au site.
             skin: isDark ? 'oxide-dark' : 'oxide',
+            
+            // Important : charger le CSS content 'dark' si mode sombre
             content_css: isDark ? 'dark' : 'default',
-            // Injecter le CSS de l'application pour que le contenu ressemble au site
+            
+            // Classe ajoutée au body de l'iframe
+            body_class: isDark ? 'dark' : '',
+            
+            // CSS injecté DANS l'iframe (pour le contenu)
             content_style: `
                 @import url('/assets/css/app.css');
                 body { 
@@ -156,13 +251,18 @@ class WysiwygType implements FieldTypeInterface
                     font-size: 16px; 
                     line-height: 1.6;
                     padding: 1rem;
+                    /* Forcer le fond transparent pour prendre la couleur de l'iframe définie par nos overrides */
+                    background-color: transparent !important; 
+                }
+                /* Si le mode dark n'est pas détecté par app.css dans l'iframe, on force les couleurs */
+                body.dark {
+                    color: #e5e7eb; /* text-gray-200 */
                 }
             `,
             branding: false,
             promotion: false,
             license_key: 'gpl',
             setup: function(editor) {
-                // Synchroniser le contenu avant soumission du formulaire
                 editor.on('change', function() {
                     editor.save();
                 });
@@ -175,37 +275,31 @@ class WysiwygType implements FieldTypeInterface
 
     // Fonction d'initialisation
     function initEditor() {
-        // Supprimer l'ancien éditeur s'il existe
         if (typeof tinymce !== 'undefined') {
             if (tinymce.get('{$name}')) {
                 tinymce.get('{$name}').remove();
             }
-            
-            // Initialiser avec la config courante (skin clair/sombre)
             tinymce.init(getEditorConfig()).then(function(editors) {
                 currentEditor = editors[0];
             });
         }
     }
 
-    // Observer les changements de classe sur <html> pour le dark mode
+    // Observer les changements de classe sur <html> pour le changement dynamique
     var themeObserver = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.attributeName === 'class') {
-                // Si le thème a changé, on recharge l'éditeur
-                // On attend un peu que le DOM soit à jour
                 setTimeout(initEditor, 100);
             }
         });
     });
 
-    // Démarrer l'observation du thème
     themeObserver.observe(document.documentElement, {
         attributes: true,
         attributeFilter: ['class']
     });
 
-    // Charger TinyMCE si pas encore chargé
+    // Chargement du script
     if (typeof tinymce === 'undefined') {
         var script = document.createElement('script');
         script.src = '{$cdnUrl}';
@@ -215,22 +309,18 @@ class WysiwygType implements FieldTypeInterface
         };
         document.head.appendChild(script);
     } else {
-        // TinyMCE déjà chargé, initialiser directement
         initEditor();
     }
 
-    // Réinitialiser après swap HTMX (si HTMX est présent)
+    // Support HTMX
     if (typeof htmx !== 'undefined') {
         document.body.addEventListener('htmx:afterSwap', function(evt) {
-            // Vérifier si le nouveau contenu contient notre éditeur
             var editorElement = document.getElementById('{$name}');
             if (editorElement && typeof tinymce !== 'undefined') {
-                // Petit délai pour s'assurer que le DOM est prêt
                 setTimeout(initEditor, 50);
             }
         });
         
-        // Nettoyage lors de la suppression de l'élément (pour éviter les fuites mémoire)
         document.body.addEventListener('htmx:beforeSwap', function(evt) {
              if (tinymce.get('{$name}')) {
                 tinymce.get('{$name}').remove();
