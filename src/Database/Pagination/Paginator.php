@@ -445,9 +445,9 @@ class Paginator implements IteratorAggregate, Countable
             }
         }
 
-        // Helper pour créer un élément de page
+        // Helper pour créer un élément de page (retourne un objet pour compatibilité template)
         $makePage = function ($num, bool $isEllipsis = false) {
-            return [
+            return (object)[
                 'number' => $num,
                 'url' => $isEllipsis ? '' : $this->url($num),
                 'isEllipsis' => $isEllipsis,
