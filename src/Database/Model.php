@@ -155,7 +155,8 @@ abstract class Model
     protected function syncAttributesFromProperties(): void
     {
         $reflection = new \ReflectionClass($this);
-        $properties = $reflection->getProperties(\ReflectionProperty::IS_PRIVATE);
+        // Inclure toutes les visibilités (private, protected, public) pour les modèles
+        $properties = $reflection->getProperties(\ReflectionProperty::IS_PRIVATE | \ReflectionProperty::IS_PROTECTED);
 
         foreach ($properties as $property) {
             $name = $property->getName();
