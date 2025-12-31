@@ -421,8 +421,36 @@ class Paginator implements IteratorAggregate, Countable
         // Créer une instance de View et rendre le template avec chemin relatif
         $view = new \Ogan\View\View($templatesDir, true);
 
+        // Générer le tableau des pages intelligentes
+        // Cela permet de contourner les limitations du compilateur de template (qui ne gère pas les ranges 1..N)
+        // et de fournir une pagination "intelligente" (avec ...)
+        $pages = [];
+        $lastPage = $this->lastPage();
+        $start = max(1, $this->currentPage - 2);
+        $end = min($lastPage, $this->currentPage + 2);
+
+        if ($end - $start < 4) {
+            if ($start === 1) {
+                $end = min($lastPage, 5);
+            } elseif ($end === $lastPage) {
+                $start = max(1, $lastPage - 4);
+            }
+        }
+
+        if ($start > 1) {
+            $pages[] = 1;
+            if ($start > 2) $pages[] = '...';
+        }
+        for ($i = $start; $i <= $end; $i++) {
+            $pages[] = $i;
+        }
+        if ($end < $lastPage) {
+            if ($end < $lastPage - 1) $pages[] = '...';
+            $pages[] = $lastPage;
+        }
+
         // Fusionner les données avec le paginator
-        $viewData = array_merge(['paginator' => $this], $data);
+        $viewData = array_merge(['paginator' => $this, 'pages' => $pages], $data);
 
         return $view->render($relativePath, $viewData);
     }
