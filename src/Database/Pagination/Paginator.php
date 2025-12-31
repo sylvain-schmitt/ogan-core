@@ -458,7 +458,14 @@ class Paginator implements IteratorAggregate, Countable
         }
 
         // Fusionner les données avec le paginator
-        $viewData = array_merge(['paginator' => $this, 'pages' => $pages], $data);
+        // Fournir des valeurs par défaut pour target et swap (utile pour les templates htmx)
+        $defaults = [
+            'paginator' => $this,
+            'pages' => $pages,
+            'target' => '#content',
+            'swap' => 'innerHTML'
+        ];
+        $viewData = array_merge($defaults, $data);
 
         return $view->render($relativePath, $viewData);
     }
