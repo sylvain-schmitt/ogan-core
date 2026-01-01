@@ -237,12 +237,23 @@ document.addEventListener('htmx:beforeSwap', function(event) {
     if (target && target.hasAttribute('data-htmx-paginated')) {
         var response = event.detail.xhr.responseText;
         if (response && response.trim().length > 0) {
+            // Sauvegarder l'ID AVANT le swap (target sera détruit)
+            var targetId = target.id;
+            
+            // Faire le swap manuellement
             target.outerHTML = response;
+            
+            // Empêcher HTMX de faire son propre swap
             event.detail.shouldSwap = false;
-            var newElement = document.getElementById(target.id);
+            
+            // Récupérer le NOUVEL élément par son ID
+            var newElement = document.getElementById(targetId);
             if (newElement) {
+                // CRITIQUE: htmx.process() initialise les attributs hx-* sur les nouveaux éléments
                 htmx.process(newElement);
             }
+            
+            // Déclencher l'événement afterSwap pour les autres listeners
             document.body.dispatchEvent(new CustomEvent('htmx:afterSwap', {
                 detail: { target: newElement }
             }));
