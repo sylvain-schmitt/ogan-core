@@ -257,10 +257,11 @@ class Paginator implements IteratorAggregate, Countable
      * Génère le HTML avec attributs HTMX intégrés
      * 
      * @param string $target Sélecteur CSS de l'élément cible (#content, #user-list, etc.)
-     * @param string $swap Type de swap HTMX (innerHTML, outerHTML, etc.)
+     * @param string $target Sélecteur CSS de la cible (obligatoire, ex: '#articles-list')
+     * @param string $swap Type de swap HTMX (outerHTML par défaut pour compatibilité pagination)
      * @return string HTML de la pagination avec attributs HTMX
      */
-    public function linksHtmx(string $target = '#content', string $swap = 'innerHTML'): string
+    public function linksHtmx(string $target, string $swap = 'outerHTML'): string
     {
         if ($this->lastPage() <= 1) {
             return '';

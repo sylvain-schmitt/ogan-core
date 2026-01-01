@@ -58,37 +58,48 @@ class PaginationTemplateGenerator extends AbstractGenerator
         $modelLower = strtolower($this->modelName);
         $modelPlural = $modelLower . 's';
         $modelTitle = ucfirst($modelPlural);
-        
-        $paginationLinks = $this->htmx 
-            ? "{{ {$modelPlural}.linksHtmx('#content', 'innerHTML')|raw }}"
-            : "{{ {$modelPlural}.links()|raw }}";
 
-        $contentWrapper = $this->htmx ? '<div id="content">' : '';
-        $contentWrapperEnd = $this->htmx ? '</div>' : '';
+        if ($this->htmx) {
+            // Version HTMX : wrapper simple qui inclut le partial
+            return <<<OGAN
+{{ extend('layouts/base.ogan') }}
 
+{{ start('body') }}
+<div class="max-w-6xl mx-auto py-8 px-4">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">{{ title }}</h1>
+
+    <!-- Zone de la liste - mise à jour par HTMX -->
+    <div id="{$modelPlural}-list">
+        {{ component('{$modelLower}/_list_partial', ['{$modelPlural}' => {$modelPlural}]) }}
+    </div>
+</div>
+{{ end }}
+OGAN;
+        }
+
+        // Version standard (sans HTMX)
         return <<<OGAN
 {{ extend('layouts/base.ogan') }}
 
 {{ start('body') }}
 <div class="max-w-6xl mx-auto py-8 px-4">
-    <h1 class="text-3xl font-bold text-gray-900 mb-6">{{ title }}</h1>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">{{ title }}</h1>
 
-    {$contentWrapper}
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nom</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {% for item in {$modelPlural} %}
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ item.id }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ item.name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.createdAt }}</td>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ item.id }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ item.name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ item.createdAt }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -96,9 +107,8 @@ class PaginationTemplateGenerator extends AbstractGenerator
     </div>
 
     <div class="mt-6">
-        {$paginationLinks}
+        {{ {$modelPlural}.links()|raw }}
     </div>
-    {$contentWrapperEnd}
 </div>
 {{ end }}
 OGAN;
@@ -108,32 +118,34 @@ OGAN;
     {
         $modelLower = strtolower($this->modelName);
         $modelPlural = $modelLower . 's';
+        $listId = $modelPlural . '-list';
 
         return <<<OGAN
-{# Template partiel pour requêtes HTMX - Ne pas inclure de layout #}
-<div class="bg-white rounded-lg shadow overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
+<div id="{$listId}" data-htmx-paginated hx-boost="false">
+{% if showFlashOob ?? false %}{{ component('flashes', ['oob' => true]) }}{% endif %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nom</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
             </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
+        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {% for item in {$modelPlural} %}
-            <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ item.id }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ item.name }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.createdAt }}</td>
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ item.id }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ item.name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ item.createdAt }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
-
 <div class="mt-6">
-    {{ {$modelPlural}.linksHtmx('#content', 'innerHTML')|raw }}
+    {{ {$modelPlural}.linksHtmx('#{$listId}')|raw }}
+</div>
 </div>
 OGAN;
     }

@@ -78,6 +78,12 @@ class HtmxHelper
         // Ajouter le script de gestion des erreurs HTMX
         $html .= self::errorHandlerScript();
 
+        // Ajouter le fix pour la pagination HTMX (contourne bug HTMX 2.0.8)
+        $html .= self::paginationFixScript();
+
+        // Ajouter le refresh OganStimulus après swap HTMX
+        $html .= self::stimulusRefreshScript();
+
         return $html;
     }
 
@@ -211,6 +217,61 @@ document.addEventListener('htmx:afterRequest', function(event) {
         if (container) { container.innerHTML = response; }
     }
 });
+</script>
+JS;
+    }
+
+    /**
+     * FIX POUR LA PAGINATION HTMX (HTMX 2.0.8 BUG)
+     * 
+     * Contourne un bug silencieux de HTMX 2.0.8 qui vide le conteneur
+     * au lieu de le remplir lors des swaps innerHTML/outerHTML.
+     * Utilise data-htmx-paginated comme marqueur générique.
+     */
+    private static function paginationFixScript(): string
+    {
+        return <<<'JS'
+<script>
+document.addEventListener('htmx:beforeSwap', function(event) {
+    var target = event.detail.target;
+    if (target && target.hasAttribute('data-htmx-paginated')) {
+        var response = event.detail.xhr.responseText;
+        if (response && response.trim().length > 0) {
+            target.outerHTML = response;
+            event.detail.shouldSwap = false;
+            var newElement = document.getElementById(target.id);
+            if (newElement) {
+                htmx.process(newElement);
+            }
+            document.body.dispatchEvent(new CustomEvent('htmx:afterSwap', {
+                detail: { target: newElement }
+            }));
+        }
+    }
+});
+</script>
+JS;
+    }
+
+    /**
+     * REFRESH OGANSTIMULUS APRÈS SWAP HTMX
+     * 
+     * Permet aux controllers Stimulus d'être ré-initialisés
+     * après un swap HTMX (nouveaux éléments dans le DOM).
+     */
+    private static function stimulusRefreshScript(): string
+    {
+        return <<<'JS'
+<script>
+(function() {
+    function refreshApp() {
+        if (typeof app !== 'undefined' && typeof app.refresh === 'function') {
+            setTimeout(function() { app.refresh(); }, 50);
+        }
+    }
+    document.addEventListener('htmx:afterSwap', refreshApp);
+    document.addEventListener('htmx:load', refreshApp);
+})();
 </script>
 JS;
     }
