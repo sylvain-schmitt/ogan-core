@@ -32,12 +32,12 @@ trait FieldTypeTrait
         // Classes par défaut pour le label
         $defaultClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2';
 
-        // Fusionner avec les classes personnalisées si fournies
-        if (isset($labelAttr['class'])) {
-            $labelAttr['class'] = $defaultClass . ' ' . $labelAttr['class'];
-        } else {
+        // Si une classe est fournie, elle REMPLACE les classes par défaut
+        // (évite les conflits de spécificité CSS avec Tailwind)
+        if (!isset($labelAttr['class'])) {
             $labelAttr['class'] = $defaultClass;
         }
+        // Sinon, on utilise directement la classe personnalisée fournie
 
         // Générer les attributs HTML
         $attrString = '';
