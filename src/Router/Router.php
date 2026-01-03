@@ -378,6 +378,27 @@ class Router implements RouterInterface
 
     public function dispatch(string $uri, string $method, RequestInterface $request, ResponseInterface $response, ContainerInterface $container): void
     {
+        // ─────────────────────────────────────────────────────────────────────
+        // NORMALISATION DES TRAILING SLASHES
+        // ─────────────────────────────────────────────────────────────────────
+        // Si l'URI se termine par un slash (et ce n'est pas la racine),
+        // on fait une redirection 301 vers l'URL sans trailing slash.
+        // Cela améliore le SEO et évite le contenu dupliqué.
+        // ─────────────────────────────────────────────────────────────────────
+        if ($uri !== '/' && str_ends_with($uri, '/')) {
+            $cleanUri = rtrim($uri, '/');
+            
+            // Conserver les query parameters s'ils existent
+            $queryString = $_SERVER['QUERY_STRING'] ?? '';
+            if ($queryString !== '') {
+                $cleanUri .= '?' . $queryString;
+            }
+            
+            $response->redirect($cleanUri, 301);
+            $response->send();
+            return;
+        }
+
         // On récupère le host depuis la requête pour le matching de sous-domaine
         $host = $_SERVER['HTTP_HOST'] ?? null;
 
