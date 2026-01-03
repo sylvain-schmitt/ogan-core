@@ -4,14 +4,14 @@
  * ═══════════════════════════════════════════════════════════════════════
  * 📋 SELECTTYPE - Type de Champ Liste Déroulante
  * ═══════════════════════════════════════════════════════════════════════
- * 
+ *
  * RÔLE :
  * ------
  * Génère un élément <select> HTML avec des options.
- * 
+ *
  * EXEMPLE D'UTILISATION :
  * ------------------------
- * 
+ *
  * ->add('country', SelectType::class, [
  *     'label' => 'Pays',
  *     'choices' => [
@@ -21,7 +21,7 @@
  *     ],
  *     'required' => true
  * ])
- * 
+ *
  * ═══════════════════════════════════════════════════════════════════════
  */
 
@@ -38,7 +38,7 @@ class SelectType implements FieldTypeInterface
         $attr = $options['attr'] ?? [];
         $choices = $options['choices'] ?? [];
         $placeholder = $options['placeholder'] ?? null;
-        $multiple = $options['multiple'] ?? false;
+        $multiple = $options['multiple'] ?? (!empty($attr['multiple']));
 
         $html = '<div class="form-group">';
         $html .= '<label for="' . htmlspecialchars($name) . '">' . htmlspecialchars($label);
@@ -72,7 +72,7 @@ class SelectType implements FieldTypeInterface
         // Options
         foreach ($choices as $choiceValue => $choiceLabel) {
             $html .= '<option value="' . htmlspecialchars((string)$choiceValue) . '"';
-            
+
             // Sélectionner l'option si elle correspond à la valeur
             if ($multiple) {
                 // Pour les selects multiples, la valeur est un tableau
@@ -85,7 +85,7 @@ class SelectType implements FieldTypeInterface
                     $html .= ' selected';
                 }
             }
-            
+
             $html .= '>' . htmlspecialchars($choiceLabel) . '</option>';
         }
 
@@ -111,7 +111,7 @@ class SelectType implements FieldTypeInterface
         $attr = $options['attr'] ?? [];
         $choices = $options['choices'] ?? [];
         $placeholder = $options['placeholder'] ?? null;
-        $multiple = $options['multiple'] ?? false;
+        $multiple = $options['multiple'] ?? (!empty($attr['multiple']));
         $defaultClass = 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent';
         $inputClass = $attr['class'] ?? $defaultClass;
 
@@ -155,4 +155,3 @@ class SelectType implements FieldTypeInterface
         return $html;
     }
 }
-
