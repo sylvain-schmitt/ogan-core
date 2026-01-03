@@ -47,6 +47,22 @@ use Ogan\Database\Model;
 
 class ManyToOne extends Relation
 {
+     /**
+     * ═══════════════════════════════════════════════════════════════════
+     * RÉCUPÉRER LA VALEUR DE LA CLÉ LOCALE (Pour ManyToOne)
+     * ═══════════════════════════════════════════════════════════════════
+     *
+     * Pour une relation ManyToOne, la "valeur locale" qui sert à faire la jointure
+     * se trouve dans la colonne "foreignKey" du modèle PARENT.
+     *
+     * Ex: Article (parent) a une colonne 'category_id' (foreignKey)
+     * On veut récupérer la valeur de 'category_id' pour chercher la catégorie correspondante.
+     */
+    protected function getLocalKeyValue(): mixed
+    {
+        // On utilise getAttribute pour profiter du mapping automatique (snake_case -> camelCase)
+        return $this->parent->getAttribute($this->foreignKey);
+    }
     /**
      * ═══════════════════════════════════════════════════════════════════
      * RÉCUPÉRER LE RÉSULTAT DE LA RELATION
