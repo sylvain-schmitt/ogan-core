@@ -34,12 +34,11 @@ class WysiwygType implements FieldTypeInterface
 
     public function render(string $name, mixed $value, array $options, array $errors): string
     {
-        $label = $options['label'] ?? ucfirst($name);
-        $required = $options['required'] ?? false;
         $attr = $options['attr'] ?? [];
         $editor = $options['editor'] ?? 'tinymce';
         $toolbar = $options['toolbar'] ?? 'full';
         $height = $options['height'] ?? 400;
+        $required = $options['required'] ?? false;
 
         // Classes par défaut
         $defaultClass = 'w-full border border-gray-300 rounded-lg';
@@ -47,11 +46,9 @@ class WysiwygType implements FieldTypeInterface
         $rows = $attr['rows'] ?? 10;
 
         $html = '<div class="mb-4">';
-        $html .= '<label for="' . htmlspecialchars($name) . '" class="block text-sm font-medium text-gray-700 mb-2">' . htmlspecialchars($label);
-        if ($required) {
-            $html .= ' <span class="text-red-500">*</span>';
-        }
-        $html .= '</label>';
+
+        // Utiliser renderLabel du trait (supporte label_attr)
+        $html .= $this->renderLabel($name, $options);
 
         // Textarea
         $html .= '<textarea';
@@ -77,14 +74,8 @@ class WysiwygType implements FieldTypeInterface
             $html .= $this->getTinyMceScript($name, $toolbar, $height);
         }
 
-        // Afficher les erreurs
-        if (!empty($errors)) {
-            $html .= '<div class="mt-1">';
-            foreach ($errors as $error) {
-                $html .= '<p class="text-sm text-red-600">' . htmlspecialchars($error) . '</p>';
-            }
-            $html .= '</div>';
-        }
+        // Utiliser renderErrors du trait
+        $html .= $this->renderErrors($errors);
 
         $html .= '</div>';
 

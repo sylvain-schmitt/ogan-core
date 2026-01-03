@@ -24,8 +24,6 @@ class ColorType implements FieldTypeInterface
 
     public function render(string $name, mixed $value, array $options, array $errors): string
     {
-        $label = $options['label'] ?? ucfirst($name);
-        $required = $options['required'] ?? false;
         $attr = $options['attr'] ?? [];
 
         // Valeur par défaut
@@ -35,13 +33,12 @@ class ColorType implements FieldTypeInterface
         // Classes par défaut Tailwind
         $defaultClass = 'w-16 h-10 border border-gray-300 rounded-lg cursor-pointer p-1';
         $inputClass = $attr['class'] ?? $defaultClass;
+        $required = $options['required'] ?? false;
 
         $html = '<div class="mb-4">';
-        $html .= '<label for="' . htmlspecialchars($name) . '" class="block text-sm font-medium text-gray-700 mb-2">' . htmlspecialchars($label);
-        if ($required) {
-            $html .= ' <span class="text-red-500">*</span>';
-        }
-        $html .= '</label>';
+
+        // Utiliser renderLabel du trait (supporte label_attr)
+        $html .= $this->renderLabel($name, $options);
 
         $html .= '<div class="flex items-center gap-3">';
         $html .= '<input type="color"';
@@ -73,14 +70,8 @@ class ColorType implements FieldTypeInterface
             });
         </script>';
 
-        // Afficher les erreurs
-        if (!empty($errors)) {
-            $html .= '<div class="mt-1">';
-            foreach ($errors as $error) {
-                $html .= '<p class="text-sm text-red-600">' . htmlspecialchars($error) . '</p>';
-            }
-            $html .= '</div>';
-        }
+        // Utiliser renderErrors du trait
+        $html .= $this->renderErrors($errors);
 
         $html .= '</div>';
 
