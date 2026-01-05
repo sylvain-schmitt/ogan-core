@@ -4,30 +4,30 @@
  * ═══════════════════════════════════════════════════════════════════════
  * 🔨 QUERYBUILDER - Constructeur de Requêtes SQL
  * ═══════════════════════════════════════════════════════════════════════
- * 
+ *
  * RÔLE :
  * ------
  * Construit des requêtes SQL de manière orientée objet et sécurisée.
  * Utilise des requêtes préparées pour éviter les injections SQL.
- * 
+ *
  * POURQUOI UN QUERY BUILDER ?
  * ----------------------------
- * 
+ *
  * 1. SÉCURITÉ :
  *    Utilise des requêtes préparées automatiquement.
  *    Protection contre les injections SQL.
- * 
+ *
  * 2. LISIBILITÉ :
  *    Code plus lisible que du SQL brut.
  *    Méthodes chaînables (fluent interface).
- * 
+ *
  * 3. FLEXIBILITÉ :
  *    Construit des requêtes complexes facilement.
  *    Supporte WHERE, JOIN, ORDER BY, GROUP BY, etc.
- * 
+ *
  * EXEMPLES D'UTILISATION :
  * ------------------------
- * 
+ *
  * // SELECT
  * $users = QueryBuilder::table('users')
  *     ->select(['id', 'name', 'email'])
@@ -35,21 +35,21 @@
  *     ->orderBy('name', 'ASC')
  *     ->limit(10)
  *     ->get();
- * 
+ *
  * // INSERT
  * QueryBuilder::table('users')
  *     ->insert(['name' => 'Ogan', 'email' => 'ogan@example.com']);
- * 
+ *
  * // UPDATE
  * QueryBuilder::table('users')
  *     ->where('id', '=', 1)
  *     ->update(['name' => 'Ogan Updated']);
- * 
+ *
  * // DELETE
  * QueryBuilder::table('users')
  *     ->where('id', '=', 1)
  *     ->delete();
- * 
+ *
  * ═══════════════════════════════════════════════════════════════════════
  */
 
@@ -120,13 +120,18 @@ class QueryBuilder
     private bool $includeSoftDeleted = false;
 
     /**
+     * @var string|null Classe du modèle pour l'hydratation des résultats
+     */
+    private ?string $modelClass = null;
+
+    /**
      * ═══════════════════════════════════════════════════════════════════
      * CONSTRUCTEUR
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param PDO $pdo Connexion PDO
      * @param string $table Table principale
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function __construct(PDO $pdo, string $table)
@@ -139,10 +144,10 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * FACTORY : Créer un nouveau QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $table Nom de la table
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public static function table(string $table): self
@@ -152,12 +157,36 @@ class QueryBuilder
 
     /**
      * ═══════════════════════════════════════════════════════════════════
+     * DÉFINIR LA CLASSE DE MODÈLE POUR L'HYDRATATION
+     * ═══════════════════════════════════════════════════════════════════
+     *
+     * @param string $modelClass Classe du modèle (ex: Article::class)
+     * @return self
+     *
+     * ═══════════════════════════════════════════════════════════════════
+     */
+    public function setModelClass(string $modelClass): self
+    {
+        $this->modelClass = $modelClass;
+        return $this;
+    }
+
+    /**
+     * Récupère la classe du modèle
+     */
+    public function getModelClass(): ?string
+    {
+        return $this->modelClass;
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════
      * SÉLECTIONNER DES COLONNES
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param array|string $columns Colonnes à sélectionner
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function select(array|string $columns): self
@@ -173,12 +202,12 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * AJOUTER UNE CONDITION WHERE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $column Colonne
      * @param string $operator Opérateur (=, >, <, LIKE, etc.)
      * @param mixed $value Valeur
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function where(string $column, string $operator, mixed $value): self
@@ -196,12 +225,12 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * AJOUTER UNE CONDITION OR WHERE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $column Colonne
      * @param string $operator Opérateur
      * @param mixed $value Valeur
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function orWhere(string $column, string $operator, mixed $value): self
@@ -219,10 +248,10 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * AJOUTER UNE CONDITION WHERE NULL
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $column Colonne
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function whereNull(string $column): self
@@ -240,10 +269,10 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * AJOUTER UNE CONDITION WHERE NOT NULL
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $column Colonne
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function whereNotNull(string $column): self
@@ -261,9 +290,9 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * INCLURE LES ENREGISTREMENTS SOFT-DELETED
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function withSoftDeletes(): self
@@ -276,9 +305,9 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * VÉRIFIER SI LES SOFT DELETES SONT INCLUS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return bool
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function includesSoftDeleted(): bool
@@ -290,13 +319,13 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * AJOUTER UNE JOINTURE INNER JOIN
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $table Table à joindre
      * @param string $first Colonne de la table principale
      * @param string $operator Opérateur
      * @param string $second Colonne de la table jointe
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function join(string $table, string $first, string $operator, string $second): self
@@ -315,13 +344,13 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * AJOUTER UNE JOINTURE LEFT JOIN
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $table Table à joindre
      * @param string $first Colonne de la table principale
      * @param string $operator Opérateur
      * @param string $second Colonne de la table jointe
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function leftJoin(string $table, string $first, string $operator, string $second): self
@@ -340,11 +369,11 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * TRIER LES RÉSULTATS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $column Colonne
      * @param string $direction ASC ou DESC
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function orderBy(string $column, string $direction = 'ASC'): self
@@ -358,12 +387,52 @@ class QueryBuilder
 
     /**
      * ═══════════════════════════════════════════════════════════════════
+     * TRIER PAR DATE DE CRÉATION DÉCROISSANTE (plus récent d'abord)
+     * ═══════════════════════════════════════════════════════════════════
+     *
+     * Raccourci pour orderBy('created_at', 'DESC')
+     *
+     * @param string $column Colonne de date (défaut: 'created_at')
+     * @return self
+     *
+     * @example
+     * $articles = Article::latest()->paginate(10);
+     *
+     * ═══════════════════════════════════════════════════════════════════
+     */
+    public function latest(string $column = 'created_at'): self
+    {
+        return $this->orderBy($column, 'DESC');
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════
+     * TRIER PAR DATE DE CRÉATION CROISSANTE (plus ancien d'abord)
+     * ═══════════════════════════════════════════════════════════════════
+     *
+     * Raccourci pour orderBy('created_at', 'ASC')
+     *
+     * @param string $column Colonne de date (défaut: 'created_at')
+     * @return self
+     *
+     * @example
+     * $articles = Article::oldest()->paginate(10);
+     *
+     * ═══════════════════════════════════════════════════════════════════
+     */
+    public function oldest(string $column = 'created_at'): self
+    {
+        return $this->orderBy($column, 'ASC');
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════
      * GROUPER LES RÉSULTATS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $column Colonne
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function groupBy(string $column): self
@@ -376,10 +445,10 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * LIMITER LE NOMBRE DE RÉSULTATS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param int $limit Nombre maximum de résultats
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function limit(int $limit): self
@@ -392,10 +461,10 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * DÉCALER LES RÉSULTATS (PAGINATION)
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param int $offset Nombre de résultats à sauter
      * @return self
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function offset(int $offset): self
@@ -408,17 +477,17 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * ACTIVER LE CACHE POUR CETTE REQUÊTE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param int $ttl Durée du cache en secondes
      * @return self
-     * 
+     *
      * @example
      * // Cache la requête pendant 5 minutes
      * $users = QueryBuilder::table('users')
      *     ->cache(300)
      *     ->where('active', '=', true)
      *     ->get();
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function cache(int $ttl): self
@@ -431,24 +500,24 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * EXÉCUTER UNE REQUÊTE SELECT ET RÉCUPÉRER TOUS LES RÉSULTATS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return array Tableau de résultats
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function get(): array
     {
         $sql = $this->buildSelect();
-        
+
         // Si le cache est activé, utiliser le pattern cache-aside
         if ($this->cacheTtl !== null && function_exists('cache')) {
             $cacheKey = $this->generateCacheKey($sql);
-            
-            return cache()->remember($cacheKey, $this->cacheTtl, function() use ($sql) {
+
+            return cache()->remember($cacheKey, $this->cacheTtl, function () use ($sql) {
                 return $this->executeSelect($sql);
             });
         }
-        
+
         return $this->executeSelect($sql);
     }
 
@@ -458,16 +527,16 @@ class QueryBuilder
     private function executeSelect(string $sql): array
     {
         $stmt = $this->pdo->prepare($sql);
-        
+
         $start = microtime(true);
         $stmt->execute($this->params);
         $time = microtime(true) - $start;
-        
+
         // Logger la requête pour la Debug Bar
         if (class_exists(\Ogan\Debug\DebugBar::class)) {
             \Ogan\Debug\DebugBar::addQuery($sql, $time, $this->params);
         }
-        
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -483,9 +552,9 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * EXÉCUTER UNE REQUÊTE SELECT ET RÉCUPÉRER LE PREMIER RÉSULTAT
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return array|null Premier résultat ou null
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function first(): ?array
@@ -499,13 +568,13 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * RÉCUPÉRER LE PREMIER RÉSULTAT ET L'HYDRATER EN INSTANCE DE MODEL
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Utile pour les requêtes depuis Model::where() qui doivent retourner
      * une instance de Model plutôt qu'un tableau.
-     * 
+     *
      * @param string $modelClass Classe du modèle à instancier
      * @return object|null Instance du modèle ou null
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function firstModel(string $modelClass): ?object
@@ -530,24 +599,24 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * COMPTER LE NOMBRE DE RÉSULTATS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return int Nombre de résultats
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function count(): int
     {
-        $sql = $this->buildSelect('COUNT(*) as count');
+        $sql = $this->buildSelect('COUNT(*) as count', true);
         $stmt = $this->pdo->prepare($sql);
-        
+
         $start = microtime(true);
         $stmt->execute($this->params);
         $time = microtime(true) - $start;
-        
+
         if (class_exists(\Ogan\Debug\DebugBar::class)) {
             \Ogan\Debug\DebugBar::addQuery($sql, $time, $this->params);
         }
-        
+
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)($result['count'] ?? 0);
     }
@@ -556,10 +625,10 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * INSÉRER DES DONNÉES
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param array $data Données à insérer
      * @return int ID de la ligne insérée
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function insert(array $data): int
@@ -570,11 +639,11 @@ class QueryBuilder
         $sql = "INSERT INTO {$this->table} (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
 
         $stmt = $this->pdo->prepare($sql);
-        
+
         $start = microtime(true);
         $stmt->execute($data);
         $time = microtime(true) - $start;
-        
+
         if (class_exists(\Ogan\Debug\DebugBar::class)) {
             \Ogan\Debug\DebugBar::addQuery($sql, $time, $data);
         }
@@ -586,10 +655,10 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * METTRE À JOUR DES DONNÉES
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param array $data Données à mettre à jour
      * @return int Nombre de lignes affectées
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function update(array $data): int
@@ -609,11 +678,11 @@ class QueryBuilder
         $params = array_merge($params, $this->params);
 
         $stmt = $this->pdo->prepare($sql);
-        
+
         $start = microtime(true);
         $stmt->execute($params);
         $time = microtime(true) - $start;
-        
+
         if (class_exists(\Ogan\Debug\DebugBar::class)) {
             \Ogan\Debug\DebugBar::addQuery($sql, $time, $params);
         }
@@ -625,9 +694,9 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * SUPPRIMER DES DONNÉES
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return int Nombre de lignes affectées
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function delete(): int
@@ -636,11 +705,11 @@ class QueryBuilder
         $sql .= $this->buildWhere();
 
         $stmt = $this->pdo->prepare($sql);
-        
+
         $start = microtime(true);
         $stmt->execute($this->params);
         $time = microtime(true) - $start;
-        
+
         if (class_exists(\Ogan\Debug\DebugBar::class)) {
             \Ogan\Debug\DebugBar::addQuery($sql, $time, $this->params);
         }
@@ -652,13 +721,14 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * CONSTRUIRE LA CLAUSE SELECT
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string|null $selectOverride Override pour les colonnes (pour COUNT)
+     * @param bool $isCountQuery Si true, ignore ORDER BY, LIMIT et OFFSET
      * @return string SQL généré
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
-    private function buildSelect(?string $selectOverride = null): string
+    private function buildSelect(?string $selectOverride = null, bool $isCountQuery = false): string
     {
         $select = $selectOverride ?? implode(', ', $this->select);
         $sql = "SELECT {$select} FROM {$this->table}";
@@ -676,19 +746,19 @@ class QueryBuilder
             $sql .= " GROUP BY " . implode(', ', $this->groupBy);
         }
 
-        // ORDER BY
-        if (!empty($this->orderBy)) {
+        // ORDER BY (sauf pour les requêtes COUNT)
+        if (!$isCountQuery && !empty($this->orderBy)) {
             $orderParts = array_map(fn($o) => "{$o['column']} {$o['direction']}", $this->orderBy);
             $sql .= " ORDER BY " . implode(', ', $orderParts);
         }
 
-        // LIMIT
-        if ($this->limit !== null) {
+        // LIMIT (sauf pour les requêtes COUNT)
+        if (!$isCountQuery && $this->limit !== null) {
             $sql .= " LIMIT {$this->limit}";
         }
 
-        // OFFSET
-        if ($this->offset !== null) {
+        // OFFSET (sauf pour les requêtes COUNT)
+        if (!$isCountQuery && $this->offset !== null) {
             $sql .= " OFFSET {$this->offset}";
         }
 
@@ -699,9 +769,9 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * CONSTRUIRE LA CLAUSE WHERE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return string Clause WHERE générée
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     private function buildWhere(): string
@@ -715,7 +785,7 @@ class QueryBuilder
 
         foreach ($this->wheres as $index => $where) {
             $prefix = ($index > 0 ? " {$where['type']} " : '');
-            
+
             // IS NULL et IS NOT NULL ne nécessitent pas de paramètre
             if ($where['operator'] === 'IS NULL' || $where['operator'] === 'IS NOT NULL') {
                 $conditions[] = $prefix . "{$where['column']} {$where['operator']}";
@@ -734,22 +804,22 @@ class QueryBuilder
      * ═══════════════════════════════════════════════════════════════════
      * PAGINATION DES RÉSULTATS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Retourne un objet Paginator contenant les résultats de la page
      * courante et les métadonnées de pagination.
-     * 
+     *
      * @param int $perPage Nombre d'éléments par page
      * @param int|null $page Numéro de page (auto-détecté depuis $_GET si null)
      * @return \Ogan\Database\Pagination\Paginator
-     * 
+     *
      * @example
      * $users = QueryBuilder::table('users')
      *     ->where('active', '=', true)
      *     ->paginate(15);
-     * 
+     *
      * foreach ($users as $user) { ... }
      * echo $users->links();
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function paginate(int $perPage = 15, ?int $page = null): \Ogan\Database\Pagination\Paginator
@@ -769,8 +839,30 @@ class QueryBuilder
         // Applique la pagination et récupère les résultats
         $this->limit($perPage);
         $this->offset($offset);
-        $items = $this->get();
+        $rawResults = $this->get();
 
-        return new \Ogan\Database\Pagination\Paginator($items, $total, $perPage, $page);
+        // Hydrater les résultats si une classe de modèle est définie
+        if ($this->modelClass !== null && class_exists($this->modelClass)) {
+            $items = [];
+            foreach ($rawResults as $result) {
+                // Le constructeur du Model appelle automatiquement hydrateFromAttributes()
+                $model = new $this->modelClass($result);
+                $model->exists = true;
+                $items[] = $model;
+            }
+        } else {
+            $items = $rawResults;
+        }
+
+        // Récupérer les informations de tri pour le Paginator
+        $orderBy = null;
+        $orderDirection = 'desc';
+        if (!empty($this->orderBy)) {
+            $firstOrder = $this->orderBy[0];
+            $orderBy = $firstOrder['column'];
+            $orderDirection = strtolower($firstOrder['direction']);
+        }
+
+        return new \Ogan\Database\Pagination\Paginator($items, $total, $perPage, $page, $orderBy, $orderDirection);
     }
 }

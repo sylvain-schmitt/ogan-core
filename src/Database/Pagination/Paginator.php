@@ -13,15 +13,15 @@ use Traversable;
  * ═══════════════════════════════════════════════════════════════════════════
  * 📄 PAGINATOR - Gestion de la pagination
  * ═══════════════════════════════════════════════════════════════════════════
- * 
+ *
  * Encapsule les résultats paginés et fournit des méthodes pour naviguer
  * entre les pages et générer les liens de pagination.
- * 
+ *
  * @example
  * $users = User::paginate(15);
  * foreach ($users as $user) { ... }
  * echo $users->links();
- * 
+ *
  * ═══════════════════════════════════════════════════════════════════════════
  */
 class Paginator implements IteratorAggregate, Countable
@@ -44,15 +44,42 @@ class Paginator implements IteratorAggregate, Countable
     /** @var string|null URL de base pour les liens */
     protected ?string $path = null;
 
+    /** @var string|null Colonne de tri */
+    protected ?string $orderBy = null;
+
+    /** @var string Direction du tri (asc ou desc) */
+    protected string $orderDirection = 'desc';
+
+    /** @var string Nom du paramètre de tri dans l'URL */
+    protected string $orderName = 'order';
+
+    /** @var string Nom du paramètre de direction dans l'URL */
+    protected string $directionName = 'direction';
+
     /**
      * Crée un nouveau Paginator
+     *
+     * @param array $items Les éléments de la page courante
+     * @param int $total Nombre total d'éléments
+     * @param int $perPage Nombre d'éléments par page
+     * @param int $currentPage Numéro de la page courante
+     * @param string|null $orderBy Colonne de tri (optionnel)
+     * @param string $orderDirection Direction du tri: 'asc' ou 'desc' (défaut: 'desc')
      */
-    public function __construct(array $items, int $total, int $perPage, int $currentPage = 1)
-    {
+    public function __construct(
+        array $items,
+        int $total,
+        int $perPage,
+        int $currentPage = 1,
+        ?string $orderBy = null,
+        string $orderDirection = 'desc'
+    ) {
         $this->items = $items;
         $this->total = max(0, $total);
         $this->perPage = max(1, $perPage);
         $this->currentPage = max(1, $currentPage);
+        $this->orderBy = $orderBy;
+        $this->orderDirection = strtolower($orderDirection) === 'asc' ? 'asc' : 'desc';
 
         // Détecte automatiquement le path depuis la requête courante
         $this->path = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
@@ -108,6 +135,86 @@ class Paginator implements IteratorAggregate, Countable
     public function count(): int
     {
         return count($this->items);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TRI / ORDERING
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Retourne la colonne de tri actuelle
+     */
+    public function getOrderBy(): ?string
+    {
+        return $this->orderBy;
+    }
+
+    /**
+     * Retourne la direction de tri actuelle
+     */
+    public function getOrderDirection(): string
+    {
+        return $this->orderDirection;
+    }
+
+    /**
+     * Vérifie si le paginator est trié par une colonne spécifique
+     */
+    public function isOrderedBy(string $column): bool
+    {
+        return $this->orderBy === $column;
+    }
+
+    /**
+     * Configure le tri (fluent interface)
+     *
+     * @param string $column Colonne de tri
+     * @param string $direction Direction: 'asc' ou 'desc'
+     * @return static
+     */
+    public function orderBy(string $column, string $direction = 'asc'): static
+    {
+        $this->orderBy = $column;
+        $this->orderDirection = strtolower($direction) === 'desc' ? 'desc' : 'asc';
+        return $this;
+    }
+
+    /**
+     * Configure le tri par date de création décroissante (plus récent d'abord)
+     * Raccourci pour orderBy('created_at', 'desc')
+     *
+     * @param string $column Nom de la colonne de date (défaut: 'created_at')
+     * @return static
+     */
+    public function latest(string $column = 'created_at'): static
+    {
+        return $this->orderBy($column, 'desc');
+    }
+
+    /**
+     * Configure le tri par date de création croissante (plus ancien d'abord)
+     * Raccourci pour orderBy('created_at', 'asc')
+     *
+     * @param string $column Nom de la colonne de date (défaut: 'created_at')
+     * @return static
+     */
+    public function oldest(string $column = 'created_at'): static
+    {
+        return $this->orderBy($column, 'asc');
+    }
+
+    /**
+     * Configure les noms des paramètres URL pour le tri
+     *
+     * @param string $orderName Nom du paramètre pour la colonne (défaut: 'order')
+     * @param string $directionName Nom du paramètre pour la direction (défaut: 'direction')
+     * @return static
+     */
+    public function setOrderParams(string $orderName, string $directionName = 'direction'): static
+    {
+        $this->orderName = $orderName;
+        $this->directionName = $directionName;
+        return $this;
     }
 
     /**
@@ -194,6 +301,7 @@ class Paginator implements IteratorAggregate, Countable
 
     /**
      * Génère l'URL pour une page donnée
+     * Inclut les paramètres de tri si définis
      */
     public function url(int $page): string
     {
@@ -202,6 +310,32 @@ class Paginator implements IteratorAggregate, Countable
         // Récupère les paramètres GET existants
         $query = $_GET;
         $query[$this->pageName] = $page;
+
+        // Ajoute les paramètres de tri si définis
+        if ($this->orderBy !== null) {
+            $query[$this->orderName] = $this->orderBy;
+            $query[$this->directionName] = $this->orderDirection;
+        }
+
+        return $this->path . '?' . http_build_query($query);
+    }
+
+    /**
+     * Génère l'URL pour une page avec un tri spécifique
+     *
+     * @param int $page Numéro de page
+     * @param string $orderBy Colonne de tri
+     * @param string $direction Direction du tri ('asc' ou 'desc')
+     * @return string URL avec pagination et tri
+     */
+    public function urlWithOrder(int $page, string $orderBy, string $direction = 'desc'): string
+    {
+        $page = max(1, $page);
+
+        $query = $_GET;
+        $query[$this->pageName] = $page;
+        $query[$this->orderName] = $orderBy;
+        $query[$this->directionName] = strtolower($direction) === 'asc' ? 'asc' : 'desc';
 
         return $this->path . '?' . http_build_query($query);
     }
@@ -234,7 +368,7 @@ class Paginator implements IteratorAggregate, Countable
 
     /**
      * Génère le HTML des liens de pagination (Tailwind CSS)
-     * 
+     *
      * @param string|null $template Nom du template à utiliser (default, simple, htmx) ou chemin complet
      * @return string HTML de la pagination
      */
@@ -255,7 +389,7 @@ class Paginator implements IteratorAggregate, Countable
 
     /**
      * Génère le HTML avec attributs HTMX intégrés
-     * 
+     *
      * @param string $target Sélecteur CSS de l'élément cible (#content, #user-list, etc.)
      * @param string $target Sélecteur CSS de la cible (obligatoire, ex: '#articles-list')
      * @param string $swap Type de swap HTMX (outerHTML par défaut pour compatibilité pagination)
@@ -528,7 +662,7 @@ class Paginator implements IteratorAggregate, Countable
 
     /**
      * Génère les numéros de pages cliquables avec attributs HTMX (méthode publique)
-     * 
+     *
      * @param string $target Sélecteur CSS cible
      * @param string $swap Type de swap HTMX
      */
@@ -652,6 +786,8 @@ class Paginator implements IteratorAggregate, Countable
             'last_page' => $this->lastPage(),
             'first_item' => $this->firstItem(),
             'last_item' => $this->lastItem(),
+            'order_by' => $this->orderBy,
+            'order_direction' => $this->orderDirection,
         ];
     }
 }

@@ -4,45 +4,45 @@
  * ═══════════════════════════════════════════════════════════════════════
  * 📦 MODEL - Classe de Base pour les Modèles (Active Record Pattern)
  * ═══════════════════════════════════════════════════════════════════════
- * 
+ *
  * RÔLE :
  * ------
  * Classe abstraite de base pour tous les modèles.
  * Implémente le pattern Active Record : chaque instance représente une ligne.
- * 
+ *
  * ACTIVE RECORD PATTERN :
  * -----------------------
- * 
+ *
  * L'Active Record est un pattern où :
  * - Chaque instance de Model = une ligne de la table
  * - Les méthodes CRUD sont sur l'instance ou la classe
  * - Pas besoin de Repository séparé (contrairement au Data Mapper)
- * 
+ *
  * EXEMPLES D'UTILISATION :
  * ------------------------
- * 
+ *
  * // Créer un modèle
  * class User extends Model {
  *     protected static string $table = 'users';
  * }
- * 
+ *
  * // Créer
  * $user = new User();
  * $user->name = 'Ogan';
  * $user->email = 'ogan@example.com';
  * $user->save();
- * 
+ *
  * // Lire
  * $user = User::find(1);
  * $users = User::where('age', '>', 18)->get();
- * 
+ *
  * // Mettre à jour
  * $user->name = 'Ogan Updated';
  * $user->save();
- * 
+ *
  * // Supprimer
  * $user->delete();
- * 
+ *
  * ═══════════════════════════════════════════════════════════════════════
  */
 
@@ -85,9 +85,9 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * CONSTRUCTEUR
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param array $attributes Attributs initiaux
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function __construct(array $attributes = [])
@@ -101,10 +101,10 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * HYDRATER LES PROPRIÉTÉS DEPUIS LES ATTRIBUTS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Si le modèle a des propriétés privées avec getters/setters,
      * on les hydrate automatiquement depuis $attributes.
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     protected function hydrateFromAttributes(): void
@@ -147,9 +147,9 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * SYNCHRONISER LES PROPRIÉTÉS VERS LES ATTRIBUTS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Avant de sauvegarder, synchroniser les propriétés vers $attributes.
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     protected function syncAttributesFromProperties(): void
@@ -214,10 +214,10 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * TROUVER UNE ENTITÉ PAR ID
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param int $id ID de l'entité
      * @return static|null Instance du modèle ou null si non trouvé
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public static function find(int $id): ?static
@@ -242,9 +242,9 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * RÉCUPÉRER TOUTES LES ENTITÉS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return array Tableau d'instances du modèle
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public static function all(): array
@@ -258,9 +258,9 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * COMPTER LE NOMBRE D'ENREGISTREMENTS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return int Nombre d'enregistrements
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public static function count(): int
@@ -276,12 +276,12 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * RÉCUPÉRER LE PREMIER RÉSULTAT D'UNE REQUÊTE (hydraté)
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Utilise le QueryBuilder pour trouver un résultat et l'hydrate
      * automatiquement en instance de Model.
-     * 
+     *
      * @return static|null Instance du modèle ou null si non trouvé
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public static function first(): ?static
@@ -303,28 +303,29 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * CRÉER UN QUERY BUILDER POUR CE MODÈLE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Permet de chaîner des méthodes WHERE, ORDER BY, etc.
-     * 
+     *
      * @return QueryBuilder
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public static function query(): QueryBuilder
     {
-        return QueryBuilder::table(static::getTableName());
+        return QueryBuilder::table(static::getTableName())
+            ->setModelClass(static::class);
     }
 
     /**
      * ═══════════════════════════════════════════════════════════════════
      * AJOUTER UNE CONDITION WHERE (méthode statique)
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $column Colonne
      * @param string $operator Opérateur
      * @param mixed $value Valeur
      * @return QueryBuilder
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public static function where(string $column, string $operator, mixed $value): QueryBuilder
@@ -334,20 +335,65 @@ abstract class Model
 
     /**
      * ═══════════════════════════════════════════════════════════════════
+     * TRIER PAR DATE DE CRÉATION DÉCROISSANTE (plus récent d'abord)
+     * ═══════════════════════════════════════════════════════════════════
+     *
+     * Retourne un QueryBuilder avec tri DESC sur la colonne spécifiée.
+     *
+     * @param string $column Colonne de date (défaut: 'created_at')
+     * @return QueryBuilder
+     *
+     * @example
+     * // Plus récent d'abord
+     * $articles = Article::latest()->paginate(10);
+     *
+     * // Avec une autre colonne
+     * $articles = Article::latest('updated_at')->paginate(10);
+     *
+     * ═══════════════════════════════════════════════════════════════════
+     */
+    public static function latest(string $column = 'created_at'): QueryBuilder
+    {
+        return static::query()->latest($column);
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════
+     * TRIER PAR DATE DE CRÉATION CROISSANTE (plus ancien d'abord)
+     * ═══════════════════════════════════════════════════════════════════
+     *
+     * Retourne un QueryBuilder avec tri ASC sur la colonne spécifiée.
+     *
+     * @param string $column Colonne de date (défaut: 'created_at')
+     * @return QueryBuilder
+     *
+     * @example
+     * // Plus ancien d'abord
+     * $articles = Article::oldest()->paginate(10);
+     *
+     * ═══════════════════════════════════════════════════════════════════
+     */
+    public static function oldest(string $column = 'created_at'): QueryBuilder
+    {
+        return static::query()->oldest($column);
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════
      * PAGINATION DES RÉSULTATS
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Retourne un Paginator avec les résultats hydrartés en instances du modèle.
-     * 
+     *
      * @param int $perPage Nombre d'éléments par page
      * @param int|null $page Numéro de page (auto-détecté depuis $_GET si null)
      * @return \Ogan\Database\Pagination\Paginator
-     * 
+     *
      * @example
      * $users = User::paginate(15);
      * foreach ($users as $user) { ... }
      * echo $users->links();
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public static function paginate(int $perPage = 15, ?int $page = null): \Ogan\Database\Pagination\Paginator
@@ -381,12 +427,12 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * HYDRATER DES RÉSULTATS EN INSTANCES DU MODÈLE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Transforme un tableau de résultats SQL en instances du modèle.
-     * 
+     *
      * @param array $results Résultats SQL
      * @return array Tableau d'instances du modèle
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     protected static function hydrate(array $results): array
@@ -406,12 +452,12 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * SAUVEGARDER L'ENTITÉ (INSERT ou UPDATE)
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Si l'entité existe déjà (exists = true), fait un UPDATE.
      * Sinon, fait un INSERT.
-     * 
+     *
      * @return bool TRUE si succès, FALSE sinon
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function save(): bool
@@ -446,9 +492,9 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * INSÉRER L'ENTITÉ EN BASE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return bool TRUE si succès
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     protected function insert(): bool
@@ -485,9 +531,9 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * METTRE À JOUR L'ENTITÉ EN BASE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return bool TRUE si succès
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     protected function update(): bool
@@ -522,9 +568,9 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * SUPPRIMER L'ENTITÉ DE LA BASE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @return bool TRUE si succès
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function delete(): bool
@@ -556,13 +602,13 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * MAGIC GETTER : Récupérer un attribut
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Permet d'accéder aux attributs comme des propriétés :
      * $user->name au lieu de $user->attributes['name']
-     * 
+     *
      * @param string $name Nom de l'attribut
      * @return mixed Valeur de l'attribut ou null
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function __get(string $name): mixed
@@ -597,13 +643,13 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * MAGIC SETTER : Définir un attribut
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Permet de définir les attributs comme des propriétés :
      * $user->name = 'Ogan' au lieu de $user->attributes['name'] = 'Ogan'
-     * 
+     *
      * @param string $name Nom de l'attribut
      * @param mixed $value Valeur à définir
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function __set(string $name, mixed $value): void
@@ -620,10 +666,10 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * MAGIC ISSUET : Vérifier si un attribut existe
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * @param string $name Nom de l'attribut
      * @return bool TRUE si l'attribut existe
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public function __isset(string $name): bool
@@ -635,12 +681,12 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * RÉCUPÉRER LE NOM DE LA TABLE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Si $table n'est pas défini, déduit automatiquement depuis le nom de la classe.
      * Exemple : User → users, PostCategory → post_categories
-     * 
+     *
      * @return string Nom de la table
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     public static function getTableName(): string
@@ -680,21 +726,21 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * CRÉER UNE RELATION ONETOMANY
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Un modèle parent peut avoir plusieurs modèles enfants.
-     * 
+     *
      * @param string $related Classe du modèle cible
      * @param string $foreignKey Clé étrangère dans la table cible
      * @param string $localKey Clé locale dans la table parent (défaut: 'id')
      * @return \Ogan\Database\Relations\OneToMany
-     * 
+     *
      * Exemple :
      * // Dans User.php
      * public function getPosts(): \Ogan\Database\Relations\OneToMany
      * {
      *     return $this->oneToMany(Post::class, 'user_id');
      * }
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     protected function oneToMany(string $related, string $foreignKey, string $localKey = 'id'): \Ogan\Database\Relations\OneToMany
@@ -706,21 +752,21 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * CRÉER UNE RELATION MANYTOONE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Plusieurs modèles enfants appartiennent à un modèle parent.
-     * 
+     *
      * @param string $related Classe du modèle cible
      * @param string $foreignKey Clé étrangère dans la table actuelle
      * @param string $localKey Clé locale dans la table cible (défaut: 'id')
      * @return \Ogan\Database\Relations\ManyToOne
-     * 
+     *
      * Exemple :
      * // Dans Post.php
      * public function getUser(): \Ogan\Database\Relations\ManyToOne
      * {
      *     return $this->manyToOne(User::class, 'user_id');
      * }
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     protected function manyToOne(string $related, string $foreignKey, string $localKey = 'id'): \Ogan\Database\Relations\ManyToOne
@@ -732,21 +778,21 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * CRÉER UNE RELATION ONETOONE
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Un modèle parent a exactement un modèle enfant.
-     * 
+     *
      * @param string $related Classe du modèle cible
      * @param string $foreignKey Clé étrangère dans la table cible
      * @param string $localKey Clé locale dans la table parent (défaut: 'id')
      * @return \Ogan\Database\Relations\OneToOne
-     * 
+     *
      * Exemple :
      * // Dans User.php
      * public function getProfile(): \Ogan\Database\Relations\OneToOne
      * {
      *     return $this->oneToOne(Profile::class, 'user_id');
      * }
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     protected function oneToOne(string $related, string $foreignKey, string $localKey = 'id'): \Ogan\Database\Relations\OneToOne
@@ -758,23 +804,23 @@ abstract class Model
      * ═══════════════════════════════════════════════════════════════════
      * CRÉER UNE RELATION MANYTOMANY
      * ═══════════════════════════════════════════════════════════════════
-     * 
+     *
      * Plusieurs modèles sont liés à plusieurs autres modèles via une table pivot.
-     * 
+     *
      * @param string $related Classe du modèle cible
      * @param string $pivotTable Nom de la table pivot
      * @param string $pivotForeignKey Clé étrangère vers le modèle parent dans la table pivot
      * @param string $pivotRelatedKey Clé étrangère vers le modèle cible dans la table pivot
      * @param string $localKey Clé locale dans la table parent (défaut: 'id')
      * @return \Ogan\Database\Relations\ManyToMany
-     * 
+     *
      * Exemple :
      * // Dans User.php
      * public function getRoles(): \Ogan\Database\Relations\ManyToMany
      * {
      *     return $this->manyToMany(Role::class, 'user_role', 'user_id', 'role_id');
      * }
-     * 
+     *
      * ═══════════════════════════════════════════════════════════════════
      */
     protected function manyToMany(string $related, string $pivotTable, string $pivotForeignKey, string $pivotRelatedKey, string $localKey = 'id'): \Ogan\Database\Relations\ManyToMany
@@ -788,11 +834,11 @@ abstract class Model
 
     /**
      * Convertit le modèle en tableau pour l'API
-     * 
+     *
      * Respecte $hidden et $visible :
      * - Si $visible est défini, seuls ces attributs sont inclus
      * - Si $hidden est défini, ces attributs sont exclus
-     * 
+     *
      * @param bool $withRelations Inclure les relations chargées
      * @return array
      */
@@ -813,7 +859,7 @@ abstract class Model
 
     /**
      * Convertit le modèle en JSON
-     * 
+     *
      * @param int $options Options json_encode (JSON_PRETTY_PRINT, etc.)
      * @param bool $withRelations Inclure les relations chargées
      * @return string
@@ -914,59 +960,59 @@ abstract class Model
  * ═══════════════════════════════════════════════════════════════════════
  * 📚 NOTES PÉDAGOGIQUES
  * ═══════════════════════════════════════════════════════════════════════
- * 
+ *
  * ACTIVE RECORD vs DATA MAPPER
  * -----------------------------
- * 
+ *
  * ACTIVE RECORD (ce que nous implémentons) :
  * - Chaque instance = une ligne de la table
  * - Les méthodes CRUD sont sur l'instance
  * - Plus simple à comprendre
  * - Utilisé par Laravel (Eloquent), Ruby on Rails
- * 
+ *
  * DATA MAPPER :
  * - Séparation entre entité et persistance
  * - Repository séparé pour la persistance
  * - Plus flexible mais plus complexe
  * - Utilisé par Doctrine (Symfony), Hibernate (Java)
- * 
+ *
  * EXEMPLE ACTIVE RECORD :
- * 
+ *
  * $user = new User();
  * $user->name = 'Ogan';
  * $user->save(); // INSERT
- * 
+ *
  * $user->name = 'Ogan Updated';
  * $user->save(); // UPDATE
- * 
+ *
  * EXEMPLE DATA MAPPER :
- * 
+ *
  * $user = new User();
  * $user->name = 'Ogan';
  * $repository->save($user); // Repository gère INSERT/UPDATE
- * 
+ *
  * MAGIC METHODS
  * -------------
- * 
+ *
  * Les méthodes __get(), __set(), __isset() permettent d'utiliser
  * les attributs comme des propriétés :
- * 
+ *
  * $user->name = 'Ogan';        // Appelle __set()
  * echo $user->name;           // Appelle __get()
  * isset($user->name);          // Appelle __isset()
- * 
+ *
  * C'est plus élégant que :
  * $user->attributes['name'] = 'Ogan';
  * echo $user->attributes['name'];
- * 
+ *
  * HYDRATION
  * ---------
- * 
+ *
  * L'hydratation transforme les résultats SQL (tableaux) en objets :
- * 
+ *
  * // Résultat SQL
  * ['id' => 1, 'name' => 'Ogan', 'email' => 'ogan@example.com']
- * 
+ *
  * // Devient
  * User {
  *     attributes: [
@@ -976,6 +1022,6 @@ abstract class Model
  *     ],
  *     exists: true
  * }
- * 
+ *
  * ═══════════════════════════════════════════════════════════════════════
  */
