@@ -147,6 +147,11 @@ class Config
         }
 
         // ─────────────────────────────────────────────────────────────
+        // ÉTAPE 2.5 : Résoudre les placeholders (ex: %kernel.project_dir%)
+        // ─────────────────────────────────────────────────────────────
+        self::resolvePlaceholders(self::$config);
+
+        // ─────────────────────────────────────────────────────────────
         // ÉTAPE 3 : Remplacer les valeurs par les variables d'env
         // ─────────────────────────────────────────────────────────────
         self::mergeEnvIntoConfig();
@@ -237,6 +242,12 @@ class Config
         //         sqlite:///path/to/database.db
         if (isset($_ENV['DATABASE_URL'])) {
             $dbConfig = self::parseDatabaseUrl($_ENV['DATABASE_URL']);
+            foreach ($dbConfig as $key => $value) {
+                self::setNested('database.' . $key, $value);
+            }
+        } elseif ($envUrl = getenv('DATABASE_URL')) {
+            // Fallback: check getenv() directly (useful if variables_order excludes E)
+            $dbConfig = self::parseDatabaseUrl($envUrl);
             foreach ($dbConfig as $key => $value) {
                 self::setNested('database.' . $key, $value);
             }
@@ -630,6 +641,53 @@ class Config
         }
 
         return self::$config;
+    }
+
+    /**
+     * Résout récursivement les placeholders dans la configuration
+     */
+    private static function resolvePlaceholders(array &$config): void
+    {
+        foreach ($config as $key => &$value) {
+            if (is_array($value)) {
+                self::resolvePlaceholders($value);
+            } elseif (is_string($value)) {
+                // Remplacer %kernel.project_dir%
+                if (str_contains($value, '%kernel.project_dir%')) {
+                    $value = str_replace('%kernel.project_dir%', self::$projectRoot, $value);
+                }
+
+                // Remplacer %env(VAR)%
+                if (preg_match('/%env\((.*?)\)%/', $value, $matches)) {
+                    $envVar = $matches[1];
+                    // Gestion du typage: %env(bool:APP_DEBUG)%
+                    if (str_contains($envVar, ':')) {
+                        [$type, $var] = explode(':', $envVar, 2);
+                        $val = $_ENV[$var] ?? getenv($var) ?? null;
+                        if ($val !== null) {
+                            $val = match ($type) {
+                                'bool' => filter_var($val, FILTER_VALIDATE_BOOLEAN),
+                                'int' => (int)$val,
+                                'float' => (float)$val,
+                                default => $val
+                            };
+                        }
+                    } else {
+                        $val = $_ENV[$envVar] ?? getenv($envVar) ?? null;
+                    }
+
+                    if ($val !== null) {
+                        // Si la valeur est juste le placeholder, on remplace par la valeur typée
+                        if ($value === $matches[0]) {
+                            $value = $val;
+                        } else {
+                            // Sinon on remplace dans la chaîne (toujours string)
+                            $value = str_replace($matches[0], (string)$val, $value);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
