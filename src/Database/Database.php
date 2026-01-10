@@ -195,7 +195,8 @@ class Database
         } catch (PDOException $e) {
             // Logger l'erreur si un logger est disponible
             if (class_exists(\Ogan\Logger\Logger::class)) {
-                $logger = new \Ogan\Logger\Logger(__DIR__ . '/../../var/log');
+                $logPath = \Ogan\Config\Config::get('log.path', __DIR__ . '/../../var/log');
+                $logger = new \Ogan\Logger\Logger($logPath);
                 $logger->critical('Échec de connexion à la base de données', [
                     'error' => $e->getMessage(),
                     'host' => $host,
