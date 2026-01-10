@@ -963,6 +963,20 @@ HTML;
             $templatesPath = \Ogan\Config\Config::get('view.templates_path', 'templates');
             $templateFile = rtrim($templatesPath, '/') . '/' . $templateName;
 
+            // Debug logging pour diagnostiquer le problème
+            $logPath = \Ogan\Config\Config::get('log.path', null);
+            if ($logPath && class_exists(\Ogan\Logger\Logger::class)) {
+                $logger = new \Ogan\Logger\Logger($logPath);
+                $logger->debug('ErrorHandler::renderProductionPage', [
+                    'statusCode' => $statusCode,
+                    'templateName' => $templateName,
+                    'templatesPath' => $templatesPath,
+                    'templateFile' => $templateFile,
+                    'file_exists' => file_exists($templateFile),
+                    'is_readable' => is_readable($templateFile),
+                ]);
+            }
+
             if (file_exists($templateFile)) {
                 $view = new \Ogan\View\View($templatesPath, true);
                 $message = $statusCode === 403
@@ -975,6 +989,16 @@ HTML;
                 return;
             }
         } catch (Throwable $e) {
+            // Log l'erreur de rendu du template
+            $logPath = \Ogan\Config\Config::get('log.path', null);
+            if ($logPath && class_exists(\Ogan\Logger\Logger::class)) {
+                $logger = new \Ogan\Logger\Logger($logPath);
+                $logger->error('ErrorHandler: échec du rendu du template custom', [
+                    'error' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]);
+            }
             // Fallback vers HTML inline si le template échoue
         }
 
