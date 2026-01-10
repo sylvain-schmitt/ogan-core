@@ -1028,10 +1028,11 @@ HTML;
                         }
                     }
 
-                    // CsrfManager pour csrf_token()
-                    if (self::$container->has(\Ogan\Security\CsrfManager::class)) {
-                        $view->setCsrfTokenManager(self::$container->get(\Ogan\Security\CsrfManager::class));
+                    // CsrfTokenManager pour csrf_token() (optionnel pour les pages d'erreur)
+                    if (self::$container->has(\Ogan\Security\CsrfTokenManager::class)) {
+                        $view->setCsrfTokenManager(self::$container->get(\Ogan\Security\CsrfTokenManager::class));
                     }
+                    // Note: CsrfManager legacy n'est pas compatible avec View::setCsrfTokenManager()
                 }
 
                 $message = $statusCode === 403
