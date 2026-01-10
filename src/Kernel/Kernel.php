@@ -108,7 +108,11 @@ class Kernel
         // Étape 3 : Initialisation du Container
         $this->boot();
 
-        // Étape 4 : Handle de la requête HTTP
+        // Étape 4 : Injecter le Container dans ErrorHandler pour les templates d'erreur
+        // Permet aux templates d'erreur d'utiliser extend(), route(), etc.
+        \Ogan\Error\ErrorHandler::setContainer($this->container);
+
+        // Étape 5 : Handle de la requête HTTP
         $this->handleRequest();
     }
 

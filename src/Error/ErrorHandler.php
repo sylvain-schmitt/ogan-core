@@ -28,10 +28,17 @@ namespace Ogan\Error;
 
 use Throwable;
 use Ogan\Exception\RouteNotFoundException;
+use Ogan\DependencyInjection\Container;
 
 class ErrorHandler
 {
     private bool $debug;
+
+    /**
+     * Container statique pour permettre l'accès aux services depuis les templates d'erreur
+     * Injecté par le Kernel après boot() pour que les templates puissent utiliser extend(), route(), etc.
+     */
+    private static ?Container $container = null;
 
     /**
      * @param bool $debug Mode debug (true = dev, false = prod)
@@ -39,6 +46,23 @@ class ErrorHandler
     public function __construct(bool $debug = false)
     {
         $this->debug = $debug;
+    }
+
+    /**
+     * Injecte le Container pour permettre le rendu complet des templates d'erreur
+     * Appelé par le Kernel après boot()
+     */
+    public static function setContainer(Container $container): void
+    {
+        self::$container = $container;
+    }
+
+    /**
+     * Retourne le Container si disponible
+     */
+    public static function getContainer(): ?Container
+    {
+        return self::$container;
     }
 
     /**
@@ -979,6 +1003,37 @@ HTML;
 
             if (file_exists($templateFile)) {
                 $view = new \Ogan\View\View($templatesPath, true);
+
+                // Injecter les services du Container si disponible
+                // Cela permet aux templates d'erreur d'utiliser extend(), route(), etc.
+                if (self::$container !== null) {
+                    // Router pour route(), path(), url()
+                    if (self::$container->has(\Ogan\Router\Router::class)) {
+                        $view->setRouter(self::$container->get(\Ogan\Router\Router::class));
+                    }
+
+                    // Session pour les flash messages et app.session
+                    if (self::$container->has(\Ogan\Session\SessionInterface::class)) {
+                        $view->setSession(self::$container->get(\Ogan\Session\SessionInterface::class));
+                    }
+
+                    // Request pour app.request
+                    if (self::$container->has(\Ogan\Http\Request::class)) {
+                        $request = self::$container->get(\Ogan\Http\Request::class);
+                        $view->setRequest($request);
+
+                        // Récupérer l'utilisateur depuis la Request si disponible
+                        if (method_exists($request, 'getUser')) {
+                            $view->setUser($request->getUser());
+                        }
+                    }
+
+                    // CsrfManager pour csrf_token()
+                    if (self::$container->has(\Ogan\Security\CsrfManager::class)) {
+                        $view->setCsrfTokenManager(self::$container->get(\Ogan\Security\CsrfManager::class));
+                    }
+                }
+
                 $message = $statusCode === 403
                     ? 'Accès refusé.'
                     : ($statusCode === 404
