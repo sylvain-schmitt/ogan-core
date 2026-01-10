@@ -98,14 +98,29 @@ class Kernel
      */
     public function run(): void
     {
-        // Étape 1 : Gestion des erreurs
+        // Étape 1 : Initialiser la configuration (AVANT l'ErrorHandler !)
+        // Nécessaire pour que ErrorHandler puisse trouver les templates custom
+        $this->initConfig();
+
+        // Étape 2 : Gestion des erreurs (maintenant Config est disponible)
         $this->registerErrorHandler();
 
-        // Étape 2 : Initialisation du Container
+        // Étape 3 : Initialisation du Container
         $this->boot();
 
-        // Étape 3 : Handle de la requête HTTP
+        // Étape 4 : Handle de la requête HTTP
         $this->handleRequest();
+    }
+
+    /**
+     * Initialise la configuration (Config + .env)
+     * Doit être appelé EN PREMIER pour que les autres composants puissent l'utiliser
+     */
+    private function initConfig(): void
+    {
+        $configPath = $this->projectDir . '/config/parameters.yaml';
+        $envPath = $this->projectDir . '/.env';
+        \Ogan\Config\Config::init($configPath, $envPath);
     }
 
     /**
@@ -119,16 +134,10 @@ class Kernel
 
     /**
      * Boot : Initialise le Container et enregistre les services
+     * Note: Config est déjà initialisé par initConfig() appelé avant
      */
     private function boot(): void
     {
-        // ─────────────────────────────────────────────────────────────
-        // ÉTAPE 1 : Initialiser la configuration (Config + .env)
-        // ─────────────────────────────────────────────────────────────
-        $configPath = $this->projectDir . '/config/parameters.yaml';
-        $envPath = $this->projectDir . '/.env';
-        \Ogan\Config\Config::init($configPath, $envPath);
-
         $this->container = new Container();
 
         // Enregistre les services core du framework
