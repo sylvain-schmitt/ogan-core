@@ -47,7 +47,7 @@ use Ogan\Database\Model;
 
 class ManyToOne extends Relation
 {
-     /**
+    /**
      * ═══════════════════════════════════════════════════════════════════
      * RÉCUPÉRER LA VALEUR DE LA CLÉ LOCALE (Pour ManyToOne)
      * ═══════════════════════════════════════════════════════════════════
@@ -77,13 +77,13 @@ class ManyToOne extends Relation
     public function getResults(): ?Model
     {
         $localKeyValue = $this->getLocalKeyValue();
-        
+
         if ($localKeyValue === null) {
             return null;
         }
 
         $result = $this->getQuery()
-            ->where($this->foreignKey, '=', $localKeyValue)
+            ->where($this->localKey, '=', $localKeyValue)  // localKey = 'id' dans la table liée
             ->first();
 
         if ($result === null) {
@@ -95,4 +95,3 @@ class ManyToOne extends Relation
         return $model;
     }
 }
-
