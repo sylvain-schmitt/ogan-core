@@ -254,6 +254,18 @@ class Config
         }
 
         // ─────────────────────────────────────────────────────────────
+        // MAILER_DSN PARSING (similaire à DATABASE_URL)
+        // ─────────────────────────────────────────────────────────────
+        if (isset($_ENV['MAILER_DSN'])) {
+            self::setNested('mailer.dsn', $_ENV['MAILER_DSN']);
+            self::setNested('mail.dsn', $_ENV['MAILER_DSN']);
+        } elseif ($envDsn = getenv('MAILER_DSN')) {
+            // Fallback: check getenv() directly (Docker/Coolify env vars)
+            self::setNested('mailer.dsn', $envDsn);
+            self::setNested('mail.dsn', $envDsn);
+        }
+
+        // ─────────────────────────────────────────────────────────────
         // Autres variables d'environnement
         // ─────────────────────────────────────────────────────────────
         foreach ($_ENV as $key => $value) {
