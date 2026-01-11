@@ -675,7 +675,8 @@ class Config
                     // Gestion du typage: %env(bool:APP_DEBUG)%
                     if (str_contains($envVar, ':')) {
                         [$type, $var] = explode(':', $envVar, 2);
-                        $val = $_ENV[$var] ?? getenv($var) ?? null;
+                        // Note: getenv() returns false (not null) if not found
+                        $val = $_ENV[$var] ?? (getenv($var) ?: null);
                         if ($val !== null) {
                             $val = match ($type) {
                                 'bool' => filter_var($val, FILTER_VALIDATE_BOOLEAN),
@@ -685,7 +686,8 @@ class Config
                             };
                         }
                     } else {
-                        $val = $_ENV[$envVar] ?? getenv($envVar) ?? null;
+                        // Note: getenv() returns false (not null) if not found
+                        $val = $_ENV[$envVar] ?? (getenv($envVar) ?: null);
                     }
 
                     if ($val !== null) {
