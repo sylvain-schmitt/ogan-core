@@ -78,7 +78,7 @@ class Mailer implements MailerInterface
 
         // Parser l'URL
         $parts = parse_url($dsn);
-        
+
         if ($parts === false || !isset($parts['host'])) {
             throw new \InvalidArgumentException("DSN invalide: impossible de parser l'URL");
         }
@@ -146,9 +146,9 @@ class Mailer implements MailerInterface
 
             // Authentification si nécessaire
             if ($this->username && $this->password) {
-                $this->sendCommand($socket, "AUTH LOGIN");
-                $this->sendCommand($socket, base64_encode($this->username), '334');
-                $this->sendCommand($socket, base64_encode($this->password), '235');
+                $this->sendCommand($socket, "AUTH LOGIN", '334');  // 334 = demande username
+                $this->sendCommand($socket, base64_encode($this->username), '334');  // 334 = demande password
+                $this->sendCommand($socket, base64_encode($this->password), '235');  // 235 = auth OK
             }
 
             // MAIL FROM
@@ -268,22 +268,22 @@ class Mailer implements MailerInterface
         // Headers de base
         $headers[] = "From: " . $email->getFormattedFrom();
         $headers[] = "To: " . $this->formatRecipients($email->getTo());
-        
+
         if (!empty($email->getCc())) {
             $headers[] = "Cc: " . $this->formatRecipients($email->getCc());
         }
-        
+
         foreach ($email->getReplyTo() as $replyTo) {
             $headers[] = "Reply-To: " . $email->formatAddress($replyTo['email'], $replyTo['name']);
         }
-        
+
         $headers[] = "Subject: " . $this->encodeHeader($email->getSubject());
         $headers[] = "Date: " . date('r');
         $headers[] = "MIME-Version: 1.0";
 
         // Contenu
         $body = '';
-        
+
         if ($email->hasHtml() && $email->hasText()) {
             // Multipart alternative
             $headers[] = "Content-Type: multipart/alternative; boundary=\"{$boundary}\"";
